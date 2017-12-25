@@ -4,7 +4,7 @@ The scripts are automatically accessible from a new menu in DrRacket.
 # Installation
 
 ```
-raco pkg install quickscript
+raco pkg install https://github.com/Metaxal/quickscript.git
 ```
 
 # Usage
