@@ -2,34 +2,9 @@
 (require racket/contract
          racket/dict
          racket/file
-         racket/path
          racket/set
+         "base.rkt"
          )
-
-(define-logger quickscript)
-
-(define quickscript-dir
-  (build-path (find-system-path 'pref-dir) "quickscript"))
-
-(define library-file
-  (build-path quickscript-dir "library.rktd"))
-
-(define user-script-dir
-  (build-path quickscript-dir "user-scripts"))
-
-(make-directory* user-script-dir)
-
-
-(define (path-free? p-str)
-  (not (path-only p-str)))
-
-(define (path-string->string p-str)
-  (if (string? p-str)
-      p-str
-      (path->string p-str)))
-
-(define (script-file? f)
-  (equal? (path-get-extension f) #".rkt"))
 
 ;; A library is a hash where a key is a directory (as a string)
 ;; and a value is a list of files (string without path) to *not* include (called exclusions).
@@ -66,6 +41,10 @@
   (define except-list (exclusions lib dir))
   (set-subtract script-files except-list))
 
+(define (all-files lib)
+  (for*/list ([dir (in-dict-keys lib)]
+              [f (in-list (files lib dir))])
+    (build-path dir f)))
 
 
 (define (add-directory! lib dir [exclusions '()])
@@ -86,12 +65,6 @@
                 (λ(excl)(set-remove excl filename))))
 
 (provide/contract
- [quickscript-dir     path-string?]
- [library-file        path-string?]
- [user-script-dir     path-string?]
- [path-free?          (path-string? . -> . boolean?)]
- [path-string->string (path-string? . -> . string?)]
- [script-file?        (path-string? . -> . boolean?)]
  [library?            (any/c . -> . boolean?)]
  [load                ([]
                        [(and/c path-string? file-exists?)]
@@ -107,6 +80,8 @@
  [files               ([library?]
                        [path-string?]
                        . ->* . (listof string?))]
+ [all-files           (library?
+                       . -> . (listof path-string?))]
  [add-directory!      ([library?
                         (and/c path-string? absolute-path? directory-exists?)]
                        [list?]
@@ -127,10 +102,6 @@
 
 (module+ test
   (require rackunit)
-
-  (check-true (path-free? "a.rkt"))
-  (check-false (path-free? "b/a.rkt"))
-  (check-false (path-free? "b/a"))
 
   (define my-lib (new-library))
   (check set=?
@@ -186,4 +157,8 @@
   (check set=? (dict-keys my-lib) (dict-keys my-lib2))
   (for ([(dir excl-list) (in-dict my-lib)])
     (check-equal? excl-list (exclusions my-lib2 dir)))
+  (check set=?
+         (all-files my-lib)
+         (all-files my-lib2))
+  #;(all-files my-lib2)
   )

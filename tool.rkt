@@ -16,6 +16,9 @@
   racket/runtime-path ; for the help menu
   racket/string
   racket/unit
+  "base.rkt"
+  (prefix-in lib: "library.rkt")
+  "library-gui.rkt"
   )
 (provide tool@)
 
@@ -24,78 +27,28 @@ To debug:
 $ export PLTSTEDDR=debug@quickscript && drracket&
 
 If the menu takes a long time to load, it's because the scripts are not compiled.
-Compile them with `raco make *.rkt` in the scripts directory, then the menu should load blazingly
-fast.
+Click on Scripts>Manage scripts>Compile user scripts.
+It should then be very fast to load.
 
 |#
 
-(define-logger quickscript)
+;; Make sure quickscript's and the user's scripts directories exist.
+;; The library will also be stored in the first one.
+(make-directory* user-script-dir)
 
-(define-runtime-path bundled-scripts-path
-  (build-path "bundled-scripts"))
-
-(define base-default-user-script-dir (find-system-path 'pref-dir))
-
-(preferences:set-default 'user-script-dir
-                         (path->string (build-path base-default-user-script-dir
-                                                   "user-scripts"))
-                         path-string?)
-
-(define (script-dir)
-  (preferences:get 'user-script-dir))
-
-(log-quickscript-info "Using script-directory: ~a" (script-dir))
-
-; Copy sample scripts at installation (or if user's script directory does not exist):
-(unless (directory-exists? (script-dir))
-  (make-directory* base-default-user-script-dir)
-  ;(message-box "copy scripts" "The scripts are being copied to your user directory")
-  (copy-directory/files bundled-scripts-path (script-dir)))
-
-(define (set-script-dir dir)
-  (preferences:set 'user-script-dir (if (path? dir) (path->string dir) dir)))
-
-(define (choose-script-dir)
-  (let ([d (get-directory "Choose a directory to store scripts" #f
-                          (script-dir))])
-    (when d (set-script-dir d))))
+(define (user-script-files)
+  (lib:all-files (lib:load library-file)))
 
 (define (error-message-box filename e)
   (message-box filename
                (format "Error in script file ~s: ~a" filename (exn-message e))
                #f '(stop ok)))
 
-(define (user-script-files)
-  (filter (λ(f)(equal? (path-get-extension f) #".rkt"))
-          (directory-list (script-dir) #:build? #t)))
-
 (define (compile-user-scripts)
   (define my-compiler (compile-zos #f #:module? #t))
   (my-compiler (user-script-files) 'auto))
 
 (define-namespace-anchor a)
-
-;; the preference panel is automatically added by DrRacket (nice feature!)
-(preferences:add-panel
- "Scripts"
- (λ(parent)
-   (define pref-panel (new vertical-panel% [parent parent]
-                           [alignment     '(center center)]
-                           [spacing       10]
-                           [horiz-margin  10]
-                           [vert-margin   10]
-                           ))
-   (define dir-panel (new horizontal-panel% [parent pref-panel]))
-   (define text-dir (new text-field% [parent dir-panel]
-                         [label       "Script directory:"]
-                         [init-value  (script-dir)]
-                         [enabled     #f]))
-   (new button% [parent dir-panel]
-        [label     "Change script directory"]
-        [callback  (λ _ (choose-script-dir))])
-   (preferences:add-callback 'user-script-dir
-                             (λ(p v)(send text-dir set-value v)))
-   pref-panel))
 
 (define-syntax-rule (time-info str body ...)
   (let ([ms (current-milliseconds)])
@@ -149,7 +102,7 @@ fast.
                                            #:validate non-empty-string?))
           (when name
             (define filename (string-append (string-foldcase (string-replace name " " "-")) ".rkt"))
-            (define file-path (build-path (script-dir) filename))
+            (define file-path (build-path user-script-dir filename))
             (define proc-name (string-foldcase (string-replace name " " "-")))
             (define label name)
 
@@ -178,14 +131,14 @@ fast.
             (send this open-in-new-tab file)))
 
         (define (open-script)
-          (define file (get-file "Open a script" frame (script-dir) #f #f '()
+          (define file (get-file "Open a script" frame user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
 
         ;; Ask the user for a script to import from the bundled script directory
         ;; (or any other directory for that matter).
         ;; Useful when new scripts have been added due to an update.
-        (define (import-bundled-script)
+        #;(define (import-bundled-script)
           (define src-file (get-file "Open a script" frame bundled-scripts-path #f #f '()
                                      '(("Racket" "*.rkt"))))
           (when src-file
@@ -355,17 +308,21 @@ fast.
                                                           persistent?))])))))))))
 
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
-        (for ([(lbl cbk) (in-dict `(("&New script..."              . ,new-script)
-                                    ("&Open script..."             . ,open-script)
-                                    ("&Import bundled script..."   . ,import-bundled-script)
-                                    (separator                     . #f)
-                                    ("&Reload scripts menu"        . ,reload-scripts-menu)
-                                    ("&Unload persistent scripts"  . ,unload-persistent-scripts)
-                                    ("&Compile user scripts"       . ,compile-user-scripts)
-                                    (separator                     . #f)
-                                    ("&Help"                       . ,open-help)
-                                    ("&Feedback/Bug report..."     . ,bug-report)
-                                    ))])
+        (for ([(lbl cbk)
+               (in-dict
+                `(("&New script..."             . ,new-script)
+                  ("&Open script..."            . ,open-script)
+                  #;("&Import bundled script..."  . ,import-bundled-script)
+                  (separator                    . #f)
+                  ("&Library"                   . ,make-library-gui)
+                  ("&Compile scripts and reload menu" . ,(λ()
+                                                           (compile-user-scripts)
+                                                           (reload-scripts-menu)))
+                  ("&Unload persistent scripts" . ,unload-persistent-scripts)
+                  (separator                    . #f)
+                  ("&Help"                      . ,open-help)
+                  ("&Feedback/Bug report..."    . ,bug-report)
+                  ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
               (new menu-item% [parent manage-menu] [label lbl]
