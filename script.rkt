@@ -25,44 +25,6 @@
   (add-submod-content! stx)
   #'(void))
 
-#;
-(define-syntax (define-script stx)
-  (syntax-parse stx
-    [(_ proc ((~alt (~once [(~datum label) label-val])
-                    (~once (~optional [(~datum menu-path) (menu-path-val ...)]
-                                      #:defaults ([(menu-path-val 1) null])))
-                    (~once (~optional [(~datum help-string) help-string-val]
-                                      #:defaults ([help-string-val #'""])))
-                    (~once (~optional [(~datum shortcut) shortcut-val]
-                                      #:defaults ([shortcut-val #'#f])))
-                    (~once (~optional [(~datum shortcut-prefix) shortcut-prefix-val]
-                                      #:defaults ([shortcut-prefix-val #'#f])))
-                    (~once (~optional [(~datum persistent?) persistent?-val]
-                                      #:defaults ([persistent?-val #'#f])))
-                    (~once (~optional [(~datum output-to)
-                                       (~and output-to-val
-                                             (~or (~datum selection)
-                                                  (~datum new-tab)
-                                                  (~datum message-box)))]
-                                      #:defaults ([output-to-val #'selection]))))
-              ...)
-        rhs:expr)
-     (add-submod-content!
-      #`(begin
-          (provide proc)
-          ; Note: We quote prop-val 
-          (define proc (list
-                        (cons 'label 'label-val)
-                        (cons 'menu-path '(menu-path-val ...))
-                        (cons 'help-string 'help-string-val)
-                        (cons 'shortcut 'shortcut-val)
-                        (cons 'shortcut-prefix 'shortcut-prefix-val)
-                        (cons 'persistent? 'persistent?-val)
-                        (cons 'output-to 'output-to-val)))))
-     (syntax/loc stx
-       (begin (provide proc)
-              (define proc rhs)))]))
-
 (define-syntax (define-script stx)
   (syntax-parse stx
     [(_ proc (~alt (~once (~seq #:label label-val))
@@ -89,14 +51,12 @@
      (add-submod-content!
       #`(begin
           (provide proc)
-          ; Note: We quote prop-val 
           (define proc (list
                         (cons 'label 'label-val)
                         (cons 'menu-path '(menu-path-val ...))
                         (cons 'help-string 'help-string-val)
                         (cons 'shortcut 'shortcut-val)
                         (cons 'shortcut-prefix 'shortcut-prefix-val)
-                        ;#;(cons 'persistent? 'persistent?-val)
                         (cons 'persistent? '#,(attribute persistent-val))
                         (cons 'output-to 'output-to-val)))))
      (syntax/loc stx
