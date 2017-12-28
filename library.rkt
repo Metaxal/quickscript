@@ -47,8 +47,8 @@
     (build-path dir f)))
 
 
-(define (add-directory! lib dir [exclusions '()])
-  (dict-ref! lib (path-string->string dir) exclusions)
+(define (add-directory! lib dir [excl '()])
+  (dict-ref! lib (path-string->string dir) excl)
   (void))
 
 (define (remove-directory! lib dir)
@@ -63,6 +63,16 @@
   (dict-update! lib
                 (path-string->string dir)
                 (λ(excl)(set-remove excl filename))))
+
+(define (add-third-party-script-directory! dir [excl '()])
+  (define lib (load))
+  (add-directory! lib dir excl)
+  (save! lib))
+
+(define (remove-third-party-script-directory! dir)
+  (define lib (load))
+  (remove-directory! lib dir)
+  (save! lib))
 
 (provide/contract
  [library?            (any/c . -> . boolean?)]
@@ -89,13 +99,20 @@
  [remove-directory!   (library?
                        (and/c path-string? absolute-path?)
                        . -> . void?)]
- [exclude!      (library?
+ [exclude!            (library?
                        (and/c path-string? absolute-path?)
                        (and/c string? path-free?)
                        . -> . void?)]
- [include!   (library?
+ [include!            (library?
                        (and/c path-string? absolute-path?)
                        (and/c string? path-free?)
+                       . -> . void?)]
+ [add-third-party-script-directory!
+                      ([(and/c path-string? absolute-path?)]
+                       [(listof (and/c string? path-free?))]
+                       . ->* . void?)]
+ [remove-third-party-script-directory!
+                      ((and/c path-string? absolute-path?)
                        . -> . void?)]
  )
 
