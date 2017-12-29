@@ -26,10 +26,18 @@
 (define (script-file? f)
   (equal? (path-get-extension f) #".rkt"))
 
+(define (path-string=? dir1 dir2)
+  (string=? (path-string->string dir1)
+            (path-string->string dir2)))
+
 (module+ test
   (require rackunit)
 
   (check-true (path-free? "a.rkt"))
   (check-false (path-free? "b/a.rkt"))
   (check-false (path-free? "b/a"))
+  (when (eq? (system-path-convention-type) 'unix)
+    (check-true
+     (path-string=? "a/b/c.rkt"
+                    (build-path "a" "b/c.rkt"))))
   )

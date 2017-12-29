@@ -112,7 +112,7 @@ It should then be very fast to load.
  #lang racket/base
  (require quickscript/utils)
 
- ;; See the manual in the Scripts/Help menu for more information.
+ ;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
 
  (define-script @proc-name
    #:label "@label"
@@ -134,30 +134,6 @@ It should then be very fast to load.
           (define file (get-file "Open a script" frame user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
-
-        ;; Ask the user for a script to import from the bundled script directory
-        ;; (or any other directory for that matter).
-        ;; Useful when new scripts have been added due to an update.
-        #;(define (import-bundled-script)
-          (define src-file (get-file "Open a script" frame bundled-scripts-path #f #f '()
-                                     '(("Racket" "*.rkt"))))
-          (when src-file
-            (define src-dir   (path-only src-file))
-            (define filename  (path->string (file-name-from-path src-file)))
-            (define dest-file (build-path (script-dir) filename))
-
-            (define overwrite? (or (not (file-exists? dest-file))
-                                   (eq? 'ok
-                                        (message-box
-                                         "Overwrite?"
-                                         (string-append
-                                          "The script " filename
-                                          " already exists in your script directory.\n"
-                                          "Do you want to overwrite it?")
-                                         frame
-                                         '(caution ok-cancel)))))
-            (when overwrite?
-              (copy-file src-file  dest-file  #t))))
 
         ;; dict for persistent scripts:
         ;; the module is instanciated only once, and made available for future calls.
@@ -312,9 +288,9 @@ It should then be very fast to load.
                (in-dict
                 `(("&New script..."             . ,new-script)
                   ("&Open script..."            . ,open-script)
-                  #;("&Import bundled script..."  . ,import-bundled-script)
                   (separator                    . #f)
-                  ("&Library"                   . ,make-library-gui)
+                  ("&Library"                   . ,(λ()(make-library-gui #:parent-frame this
+                                                                         #:drracket-parent? #t)))
                   ("&Compile scripts and reload menu" . ,(λ()
                                                            (compile-user-scripts)
                                                            (reload-scripts-menu)))
