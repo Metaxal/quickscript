@@ -1,5 +1,6 @@
 #lang at-exp racket/base
-(require racket/gui/base
+(require framework
+         racket/gui/base
          racket/class
          setup/dirs
          racket/file
@@ -160,7 +161,7 @@ Do you want to proceed?
                   [label "Script library"]
                   [width 800] [height 400]
                   [min-width 400] [min-height 100]))
-  (define panels (new horizontal-panel% [parent fr]))
+  (define panels (new panel:horizontal-dragable% [parent fr]))
 
   (define dir-panel (new vertical-panel% [parent panels]
                          [style '(auto-hscroll auto-vscroll)]))
@@ -169,6 +170,7 @@ Do you want to proceed?
                       [choices (lib:directories the-lib)]
                       [style '(single vertical-label)]
                       [callback (λ(lb ev) (dir-lb-select))]))
+
   (define bt-dir-panel (new horizontal-panel% [parent dir-panel]
                             [stretchable-height #f]
                             [alignment '(center center)]))

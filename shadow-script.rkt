@@ -27,7 +27,7 @@
   @(if (dstr 'persistent?)
         "#:persistent"
         "")
-  @|shadow-prefix|@|fun-str|)
+  @|shadow-prefix|@fun-str)
   
 }
 )
