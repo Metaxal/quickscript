@@ -110,7 +110,7 @@ It should then be very fast to load.
               (λ _
                 (displayln @string-append{
  #lang racket/base
- (require quickscript/utils)
+ (require quickscript/script)
 
  ;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
 
