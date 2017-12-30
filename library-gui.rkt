@@ -234,6 +234,8 @@ Do you want to proceed?
                         [label "&Close"]
                         [callback (λ(bt ev)(send fr show #f))]))
 
+  (dir-lb-select user-script-dir)
+
   (send fr show #t))
 
 (module+ main
