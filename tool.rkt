@@ -108,17 +108,7 @@ It should then be very fast to load.
 
             (with-output-to-file file-path
               (λ _
-                (displayln @string-append{
- #lang racket/base
- (require quickscript/script)
-
- ;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
-
- (define-script @proc-name
-   #:label "@label"
-   (λ(selection)
-     #f))
- })))
+                (displayln (make-simple-script-string proc-name label))))
             (reload-scripts-menu)
             (edit-script file-path)))
 
@@ -229,9 +219,10 @@ It should then be very fast to load.
            (for ([item (list-tail (send scripts-menu get-items) 2)])
              (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
              (send item delete)))
-          ;; add script items:
-          ;for all scripts in the script directory:
+          ;; Add script items.
+          ;; Create an empty namespace to load all the scripts (in the same namespace)
           (parameterize ([current-namespace (make-base-empty-namespace)])
+            ;; For all scripts in the script directory.
             (for ([f (in-list (user-script-files))])
               (time-info
                (string-append "Loading file " (path->string f))
@@ -239,18 +230,7 @@ It should then be very fast to load.
                (with-handlers ([exn:fail? (λ(e)(error-message-box
                                                 (path->string (file-name-from-path f))
                                                 e))])
-                 (define the-submod (list 'submod (list 'file (path->string f)) 'script-info))
-                 (define property-dicts
-                   (let ()
-                     (time-info
-                      "Dynamic require"
-                      (dynamic-require the-submod #f))
-                     (define-values (vars syntaxes) (module->exports the-submod))
-                     (define funs (map car (dict-ref vars 0)))
-                     (for/list ([fun (in-list funs)])
-                       (cons fun (time-info
-                                  "Dynamic require fun"
-                                  (dynamic-require the-submod fun))))))
+                 (define property-dicts (get-property-dicts f))
                  (for ([(fun props) (in-dict property-dicts)])
                    (let*([label                (prop-dict-ref  props 'label)]
                          [menu-path            (prop-dict-ref  props 'menu-path)]

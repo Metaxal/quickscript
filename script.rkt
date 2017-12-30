@@ -4,6 +4,8 @@
 
 (provide define-script)
 
+;; Keep this file as light as possible as it is loaded in each script.
+
 (begin-for-syntax
   (define submodule-content '()))
 

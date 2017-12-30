@@ -1,8 +1,11 @@
-#lang racket/base
-(require racket/path)
+#lang at-exp racket/base
+(require racket/path
+         racket/dict)
 
 (provide (all-defined-out))
 
+(module+ test
+  (require rackunit))
 
 (define-logger quickscript)
 
@@ -31,7 +34,6 @@
             (path-string->string dir2)))
 
 (module+ test
-  (require rackunit)
 
   (check-true (path-free? "a.rkt"))
   (check-false (path-free? "b/a.rkt"))
@@ -40,4 +42,62 @@
     (check-true
      (path-string=? "a/b/c.rkt"
                     (build-path "a" "b/c.rkt"))))
+  )
+
+;; proc-name : string?
+;; label : string?
+(define (make-simple-script-string proc-name label)
+  @string-append{
+#lang racket/base
+(require quickscript/script)
+
+;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
+
+(define-script @proc-name
+  #:label "@label"
+  (λ(selection)
+    #f))
+})
+
+;; Returns a list of dictionaries of the properties of the scripts in script-filename.
+;; Important: Loads the file in the current namespace, so a new namespace should probably
+;; be created with (make-base-empty-namespace)
+(define (get-property-dicts script-filename)
+  (define the-submod (list 'submod
+                           (list 'file (path-string->string script-filename))
+                           'script-info))
+  (dynamic-require the-submod #f)
+  (define-values (vars syntaxes) (module->exports the-submod))
+  (define funs (map car (dict-ref vars 0)))
+  (define property-dicts
+    (for/list ([fun (in-list funs)])
+        (cons fun (dynamic-require the-submod fun))))
+  property-dicts)
+
+(module+ test
+  (require racket/file)
+  (define dir (find-system-path 'temp-dir))
+  (define filename "tmp-script.rkt")
+  (define filepath (build-path dir filename))
+  (define proc-sym 'my-first-script)
+  (define proc-name (symbol->string proc-sym))
+  (define label "My First Script")
+  (display-to-file (make-simple-script-string proc-name label)
+                   filepath
+                   #:exists 'replace)
+
+  ; Note: because the script requires `quickscript/script`,
+  ; quickscript must be installed as package/collection for the following to work.
+  (define prop-dicts
+    (parameterize ([current-namespace (make-base-empty-namespace)])
+      (get-property-dicts filepath)))
+  (check = (length prop-dicts) 1)
+  (define props (cdr (car prop-dicts)))
+  (define loaded-proc-sym (car (car prop-dicts)))
+  (check string=?
+         (dict-ref props 'label)
+         label)
+  (check eq?
+         proc-sym
+         loaded-proc-sym)
   )
