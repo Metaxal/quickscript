@@ -16,7 +16,7 @@
     "scribble-lib"
     ))
 
-(define build-deps '("draw-doc"))
+(define build-deps '("draw-doc" "rackunit-lib"))
 
 (define name                 "Quickscript")
 (define drracket-tools       '(("tool.rkt")))
