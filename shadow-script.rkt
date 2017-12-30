@@ -2,30 +2,23 @@
 
 (provide make-shadow-script)
 
+(define shadow-prefix "shadow:")
+
 (define (make-header f)
 @string-append{
 #lang racket/base
 (require quickscript/script
-         (file @(~s (path->string f))))
+         (prefix-in @shadow-prefix (file @(~s (path->string f)))))
 
  })
 
 ;; todo: change properties only if not default?
 (define (shadow-script-proc fun-sym props)
-  #;`(define-script ,(string->symbol (format "shadow:~a" fun-sym))
-     #:label ,(dict-ref props 'label)
-     #:menu-path ,(dict-ref props 'menu-path)
-     #:shortcut ,(dict-ref props 'shortcut)
-     #:shortuct-prefix ,(dict-ref props 'shortcut-prefix)
-     #:output-to ,(dict-ref props 'output-to)
-     ,@(if (dict-ref props 'persistent?)
-           '(#:persistent)
-           '())
-     ,fun-sym)
   (define (dstr sym)
     (~s (dict-ref props sym)))
+  (define fun-str (symbol->string fun-sym))
 @string-append{
-(define-script @(format "shadow:~a" fun-sym)
+(define-script @fun-str
   #:label @(dstr 'label)
   #:menu-path @(dstr 'menu-path)
   #:shortcut @(dstr 'shortcut)
@@ -34,7 +27,7 @@
   @(if (dstr 'persistent?)
         "#:persistent"
         "")
-  @(~a fun-sym))
+  @|shadow-prefix|@|fun-str|)
   
 }
 )
