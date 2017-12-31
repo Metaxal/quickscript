@@ -27,6 +27,16 @@
   (add-submod-content! stx)
   #'(void))
 
+(provide script-help-string)
+(define-syntax (script-help-string stx)
+  (syntax-parse stx
+    [(_ str:expr)
+     (add-submod-content!
+      #`(begin
+          (provide quickscript-module-help-string)
+          (define quickscript-module-help-string 'str)))
+     #'(void)]))
+
 (define-syntax (define-script stx)
   (syntax-parse stx
     [(_ proc (~alt (~once (~seq #:label label-val))

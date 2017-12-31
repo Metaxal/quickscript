@@ -157,6 +157,14 @@ Do you want to proceed?
     (send dir-lb clear)
     (send dir-lb set (lib:directories the-lib)))
 
+  (define (set-msg-help-string dir file)
+    (when (and dir file)
+      (define filepath (build-path dir file))
+      (define str (or (get-script-help-string filepath) ""))
+      (send msg-help-string set-label str)))
+
+  ;;; Widgets
+
   (define fr (new frame% [parent parent-frame]
                   [label "Script library"]
                   [width 800] [height 400]
@@ -201,7 +209,8 @@ Do you want to proceed?
                  (get-dir+check+file))
                (when file
                  (send bt-files-un/check set-label
-                       (if checked? "Disa&ble" "Ena&ble")))]))]))
+                       (if checked? "Disa&ble" "Ena&ble"))
+                 (set-msg-help-string dir file))]))]))
 
   (define bt-files-panel (new horizontal-panel% [parent files-panel]
                               [stretchable-height #f]
@@ -231,6 +240,11 @@ Do you want to proceed?
   (define lib-panel (new horizontal-panel% [parent fr]
                          [stretchable-height #f]
                          [alignment '(center center)]))
+
+  (define msg-help-string (new message% [parent lib-panel]
+                               [label ""]
+                               [stretchable-width #t]
+                               [auto-resize #t]))
 
   (define bt-close (new button% [parent lib-panel]
                         [label "&Close"]
