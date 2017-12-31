@@ -237,14 +237,14 @@ Do you want to proceed?
                   (send parent-frame open-in-new-tab
                         (build-path dir file)))])))
 
+  (define msg-help-string (new message% [parent fr]
+                               [label ""]
+                               [stretchable-width #f]
+                               [auto-resize #t]))
+
   (define lib-panel (new horizontal-panel% [parent fr]
                          [stretchable-height #f]
                          [alignment '(center center)]))
-
-  (define msg-help-string (new message% [parent lib-panel]
-                               [label ""]
-                               [stretchable-width #t]
-                               [auto-resize #t]))
 
   (define bt-close (new button% [parent lib-panel]
                         [label "&Close"]

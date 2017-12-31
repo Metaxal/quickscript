@@ -1,5 +1,6 @@
 #lang at-exp racket/base
 (require racket/path
+         racket/format
          racket/dict)
 
 (provide (all-defined-out))
@@ -46,13 +47,16 @@
 
 ;; proc-name : string?
 ;; label : string?
-(define (make-simple-script-string proc-name label)
+(define (make-simple-script-string proc-name label
+                                   #:script-help-string [script-help-string #f])
   @string-append{
 #lang racket/base
 (require quickscript/script)
 
 ;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
-
+@(if script-help-string
+     (string-append "\n(script-help-string " (~s script-help-string) ")\n")
+     "")
 (define-script @proc-name
   #:label "@label"
   (λ(selection)
@@ -67,10 +71,15 @@
 
 ;; script-filename : path-string?
 ;; Returns #f or a string.
+;; Important: see note for get-property-dicts
 (define (get-script-help-string script-filename)
   (dynamic-require (make-submod-path script-filename)
                    'quickscript-module-help-string
                    (λ()#f)))
+
+(define (property-dict? v)
+  (and (dict? v)
+       (dict-has-key? v 'label)))
 
 ;; Returns a list of dictionaries of the properties of the scripts in script-filename.
 ;; Important: Loads the file in the current namespace, so a new namespace should probably
@@ -82,8 +91,11 @@
   (define-values (vars syntaxes) (module->exports the-submod))
   (define funs (map car (dict-ref vars 0)))
   (define property-dicts
-    (for/list ([fun (in-list funs)])
-        (cons fun (dynamic-require the-submod fun))))
+    (filter values
+            (for/list ([fun (in-list funs)])
+              (define maybe-props (dynamic-require the-submod fun))
+              (and (property-dict? maybe-props)
+                   (cons fun maybe-props)))))
   property-dicts)
 
 (module+ test
@@ -94,22 +106,28 @@
   (define proc-sym 'my-first-script)
   (define proc-name (symbol->string proc-sym))
   (define label "My First Script")
-  (display-to-file (make-simple-script-string proc-name label)
+  (define help-str "The help-string of the script.")
+  (display-to-file (make-simple-script-string proc-name label
+                                              #:script-help-string help-str)
                    filepath
                    #:exists 'replace)
 
   ; Note: because the script requires `quickscript/script`,
   ; quickscript must be installed as package/collection for the following to work.
-  (define prop-dicts
+  (define-values (prop-dicts help-str2)
     (parameterize ([current-namespace (make-base-empty-namespace)])
-      (get-property-dicts filepath)))
+      (values (get-property-dicts filepath)
+              (get-script-help-string filepath))))
   (check = (length prop-dicts) 1)
   (define props (cdr (car prop-dicts)))
-  (define loaded-proc-sym (car (car prop-dicts)))
+  (define proc-sym2 (car (car prop-dicts)))
   (check string=?
          (dict-ref props 'label)
          label)
   (check eq?
          proc-sym
-         loaded-proc-sym)
+         proc-sym2)
+  (check string=?
+         help-str
+         help-str2)
   )
