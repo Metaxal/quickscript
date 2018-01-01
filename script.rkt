@@ -40,24 +40,31 @@
 (define-syntax (define-script stx)
   (syntax-parse stx
     [(_ proc (~alt (~once (~seq #:label label-val))
-                   (~once (~optional (~seq #:menu-path (menu-path-val ...))
-                                     #:defaults ([(menu-path-val 1) null])))
-                   (~once (~optional (~seq #:help-string help-string-val)
-                                     #:defaults ([help-string-val #'""])))
-                   (~once (~optional (~seq #:shortcut shortcut-val)
-                                     #:defaults ([shortcut-val #'#f])))
-                   (~once (~optional (~seq #:shortcut-prefix shortcut-prefix-val)
-                                     #:defaults ([shortcut-prefix-val #'#f])))
-                   (~once (~optional (~and #:persistent
+                   (~optional (~seq #:menu-path (menu-path-val ...))
+                                     #:defaults ([(menu-path-val 1) null]))
+                   (~optional (~seq #:help-string help-string-val)
+                                     #:defaults ([help-string-val #'""]))
+                   (~optional (~seq #:shortcut shortcut-val)
+                                     #:defaults ([shortcut-val #'#f]))
+                   (~optional (~seq #:shortcut-prefix shortcut-prefix-val)
+                                     #:defaults ([shortcut-prefix-val #'#f]))
+                   (~optional (~and #:persistent
                                            (~bind [persistent-val #'#t]))
-                                     #:defaults ([persistent-val #'#f])))
-                   (~once (~optional (~seq #:output-to
+                                     #:defaults ([persistent-val #'#f]))
+                   (~optional (~seq #:output-to
                                            (~and output-to-val
                                                  (~or (~datum selection)
                                                       (~datum new-tab)
                                                       (~datum message-box)
                                                       (~datum clipboard))))
-                                     #:defaults ([output-to-val #'selection]))))
+                                     #:defaults ([output-to-val #'selection]))
+                   (~optional (~seq #:os-types 
+                                           (~and os-types-val
+                                                 [(~alt (~optional (~datum unix))
+                                                        (~optional (~datum macos))
+                                                        (~optional (~datum windows)))
+                                                  ...]))
+                                     #:defaults ([os-types-val #'(unix macos windows)])))
         ...
         rhs:expr)
      (add-submod-content!
@@ -70,7 +77,8 @@
                         (cons 'shortcut 'shortcut-val)
                         (cons 'shortcut-prefix 'shortcut-prefix-val)
                         (cons 'persistent? '#,(attribute persistent-val))
-                        (cons 'output-to 'output-to-val)))))
+                        (cons 'output-to 'output-to-val)
+                        (cons 'os-types 'os-types-val)))))
      (syntax/loc stx
        (begin (provide proc)
               (define proc rhs)))]))

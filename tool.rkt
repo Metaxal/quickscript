@@ -84,16 +84,6 @@ It should then be very fast to load.
 
         (define frame this)
 
-        (define props-default
-          `((label . "My Script 1") ; Should be mandatory
-            (menu-path . ())
-            (shortcut . #f)
-            (shortcut-prefix . #f)
-            (help-string . "My amazing script")
-            (output-to . selection) ; outputs the result in a new tab
-            (persistent? . #f)
-            ))
-
         (define (prop-dict-ref props key)
           (dict-ref props key (dict-ref props-default key)))
 
@@ -232,36 +222,38 @@ It should then be very fast to load.
                                                 e))])
                  (define property-dicts (get-property-dicts f))
                  (for ([(fun props) (in-dict property-dicts)])
-                   (let*([label                (prop-dict-ref  props 'label)]
-                         [menu-path            (prop-dict-ref  props 'menu-path)]
-                         [shortcut             (prop-dict-ref  props 'shortcut)]
-                         [shortcut-prefix (or  (prop-dict-ref  props 'shortcut-prefix)
-                                               (get-default-shortcut-prefix))]
-                         [help-string          (prop-dict-ref  props 'help-string)]
-                         [output-to            (prop-dict-ref  props 'output-to)]
-                         [persistent?          (prop-dict-ref  props 'persistent?)]
+                   (let*([label           (prop-dict-ref props 'label)]
+                         [menu-path       (prop-dict-ref props 'menu-path)]
+                         [shortcut        (prop-dict-ref props 'shortcut)]
+                         [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
+                                              (get-default-shortcut-prefix))]
+                         [help-string     (prop-dict-ref props 'help-string)]
+                         [output-to       (prop-dict-ref props 'output-to)]
+                         [persistent?     (prop-dict-ref props 'persistent?)]
+                         [os-types        (prop-dict-ref props 'os-types)]
                          )
-                     ; Create the menu hierarchy if it doesn't exist.
-                     (define parent-menu
-                       (let loop ([menu-path menu-path] [parent scripts-menu])
-                         (if (empty? menu-path)
-                             parent
-                             (let ([menu (first menu-path)])
-                               (loop (rest menu-path)
-                                     (or (findf (λ(m)(and (is-a? m labelled-menu-item<%>)
-                                                          (string=? (send m get-label) menu)))
-                                                (send parent get-items))
-                                         (new menu% [parent parent] [label menu])))))))
-                     (new menu-item% [parent parent-menu]
-                          [label            label]
-                          [shortcut         shortcut]
-                          [shortcut-prefix  shortcut-prefix]
-                          [help-string      help-string]
-                          [callback         (λ(it ev)
-                                              (run-script fun
-                                                          f
-                                                          output-to
-                                                          persistent?))])))))))))
+                     (when (memq this-os-type os-types)
+                       ; Create the menu hierarchy if it doesn't exist.
+                       (define parent-menu
+                         (let loop ([menu-path menu-path] [parent scripts-menu])
+                           (if (empty? menu-path)
+                               parent
+                               (let ([menu (first menu-path)])
+                                 (loop (rest menu-path)
+                                       (or (findf (λ(m)(and (is-a? m labelled-menu-item<%>)
+                                                            (string=? (send m get-label) menu)))
+                                                  (send parent get-items))
+                                           (new menu% [parent parent] [label menu])))))))
+                       (new menu-item% [parent parent-menu]
+                            [label            label]
+                            [shortcut         shortcut]
+                            [shortcut-prefix  shortcut-prefix]
+                            [help-string      help-string]
+                            [callback         (λ(it ev)
+                                                (run-script fun
+                                                            f
+                                                            output-to
+                                                            persistent?))]))))))))))
 
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)

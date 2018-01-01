@@ -80,6 +80,7 @@ When all of them are used, a script can look like this:
     #:shortcut-prefix (ctl shift)
     #:output-to selection
     #:persistent
+    #:os-types (unix macos windows)
     ;; Procedure with its arguments:
     (λ(selection #:editor ed #:frame fr #:interactions ints #:file f)
       "Hello world!")))
@@ -221,6 +222,14 @@ There are some additional properties:
   In the previous example, this will reset the counter.
 
   @;See a more detailed example in @example-link{persistent-counter.rkt}.
+
+  }
+ 
+ @item{@racket[#:os-types (listof (one-of/c unix macos windows))]
+        
+  This keyword must be followed by a list of supported os-types.
+  Defaults to all types, i.e. @racket[(unix macos windows)].
+  
  }]
 
 If changes are made to these properties, the Scripts menu will probably need to be reloaded

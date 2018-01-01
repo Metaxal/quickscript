@@ -45,8 +45,22 @@
                     (build-path "a" "b/c.rkt"))))
   )
 
+(define props-default
+  `((label . "My Script 1") ; Should be mandatory
+    (menu-path . ())
+    (shortcut . #f)
+    (shortcut-prefix . #f) ; should be (get-default-shortcut-prefix), but this depends on gui/base
+    (help-string . "My amazing script")
+    (output-to . selection) ; outputs the result in a new tab
+    (persistent? . #f)
+    (os-types . (unix macos windows)) ; list of supported os types
+    ))
+
+(define this-os-type (system-type 'os))
+
 ;; proc-name : string?
 ;; label : string?
+;; TODO: extend this with a given property-dict
 (define (make-simple-script-string proc-name label
                                    #:script-help-string [script-help-string #f])
   @string-append{
