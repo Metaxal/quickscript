@@ -1,7 +1,8 @@
 #lang at-exp racket/base
-(require racket/path
+(require racket/dict
+         racket/path
          racket/format
-         racket/dict)
+         )
 
 (provide (all-defined-out))
 
@@ -44,6 +45,14 @@
      (path-string=? "a/b/c.rkt"
                     (build-path "a" "b/c.rkt"))))
   )
+
+(define-syntax-rule (time-info str body ...)
+  (let ([ms (current-milliseconds)])
+    (log-quickscript-info (string-append "Begin: " str "..."))
+    (begin0
+      (begin body ...)
+      (log-quickscript-info
+       (string-append "End  : " str ". Took " (number->string (- (current-milliseconds) ms)) "ms")))))
 
 (define props-default
   `((label . "My Script 1") ; Should be mandatory

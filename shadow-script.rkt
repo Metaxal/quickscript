@@ -1,9 +1,8 @@
 #lang at-exp racket/base
-
-(require "base.rkt"
-         racket/dict
+(require racket/dict
          racket/format
-         racket/string)
+         racket/string
+         "base.rkt")
 
 (provide make-shadow-script)
 
@@ -53,6 +52,9 @@
 (module+ main
   (require syntax/modresolve
            racket/path)
-  (define f (build-path (path-only (resolve-module-path 'quickscript-extra))
-                         "scripts" "bookmarks.rkt"))
-  (displayln (make-shadow-script f)))
+  ; don't bother if the module does not exist.
+  (with-handlers ([exn:fail:filesystem:missing-module? void])
+    (define qs-path (resolve-module-path 'quickscript-extra))
+    (define f (build-path (path-only qs-path)
+                          "scripts" "bookmarks.rkt"))
+    (displayln (make-shadow-script f))))

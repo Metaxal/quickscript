@@ -1,5 +1,4 @@
 #lang at-exp racket/base
-
 (require
   (for-syntax racket/base) ; for help menu
   compiler/compiler
@@ -49,14 +48,6 @@ It should then be very fast to load.
   (my-compiler (user-script-files) 'auto))
 
 (define-namespace-anchor a)
-
-(define-syntax-rule (time-info str body ...)
-  (let ([ms (current-milliseconds)])
-    (log-quickscript-info (string-append "Begin: " str "..."))
-    (begin0
-      (begin body ...)
-      (log-quickscript-info
-       (string-append "End  : " str ". Took " (number->string (- (current-milliseconds) ms)) "ms")))))
 
 (define tool@
   (unit

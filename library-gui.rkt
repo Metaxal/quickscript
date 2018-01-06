@@ -5,8 +5,9 @@
          setup/dirs
          racket/file
          "base.rkt"
+         (prefix-in lib: "library.rkt")
          "shadow-script.rkt"
-         (prefix-in lib: "library.rkt"))
+         )
 
 (provide make-library-gui)
 
