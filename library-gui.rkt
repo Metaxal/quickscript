@@ -63,11 +63,12 @@
             (get-directory "Choose a script directory to add to the library"
                            fr
                            (find-user-pkgs-dir))))
-    (lib:add-directory! the-lib dir)
-    (save!)
-    (reload-dir-lb)
-    (send dir-lb set-string-selection (path->string dir))
-    (dir-lb-select dir))
+    (when dir
+      (lib:add-directory! the-lib dir)
+      (save!)
+      (reload-dir-lb)
+      (send dir-lb set-string-selection (path->string dir))
+      (dir-lb-select dir)))
 
   (define (remove-directory dir)
     (lib:remove-directory! the-lib dir)
@@ -108,9 +109,9 @@ This will:
 2) Create a new 'shadow' script file
      @(path->string new-script-path)
    that has the same behaviour as the original script file but can be modified
-   to change its properties.
+   to change its properties;
 @(if drracket-parent?
-     "\n3) Open the shadow script file for edition in DrRacket"
+     "\n3) Open the shadow script file for edition in DrRacket."
      "")
    
 This allows the original script file to be updated (e.g., if part of a package)
@@ -234,8 +235,9 @@ Do you want to proceed?
                 (λ(bt ev)
                   (define-values (dir checked? file)
                     (get-dir+check+file))
-                  (send parent-frame open-in-new-tab
-                        (build-path dir file)))])))
+                  (when (and dir file)
+                    (send parent-frame open-in-new-tab
+                          (build-path dir file))))])))
 
   (define msg-help-string (new message% [parent fr]
                                [label ""]

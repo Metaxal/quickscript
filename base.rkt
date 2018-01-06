@@ -96,11 +96,11 @@
        (dict-has-key? v 'label)))
 
 ;; Returns a list of dictionaries of the properties of the scripts in script-filename.
-;; Important: Loads the file in the current namespace, so a new namespace should probably
+;; IMPORTANT: Loads the file in the current namespace, so a new namespace should probably
 ;; be created with (make-base-empty-namespace).
 ;; script-filename : path-string?
-(define (get-property-dicts script-filename)
-  (define the-submod (make-submod-path script-filename))
+(define (get-property-dicts script-filepath)
+  (define the-submod (make-submod-path script-filepath))
   (dynamic-require the-submod #f)
   (define-values (vars syntaxes) (module->exports the-submod))
   (define funs (map car (dict-ref vars 0)))

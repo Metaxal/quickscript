@@ -1,4 +1,9 @@
-#lang at-exp racket
+#lang at-exp racket/base
+
+(require "base.rkt"
+         racket/dict
+         racket/format
+         racket/string)
 
 (provide make-shadow-script)
 
@@ -34,21 +39,20 @@
 
 (define (make-shadow-script f)
   (parameterize ([current-namespace (make-base-empty-namespace)])
-    (define the-submod (list 'submod (list 'file (path->string f)) 'script-info))
-    (let ()
-      (dynamic-require the-submod #f)
-      (define-values (vars syntaxes) (module->exports the-submod))
-      (define funs (map car (dict-ref vars 0)))
-      (string-append
-       (make-header f)
-       "\n"
-       (string-join
-        (for/list ([fun (in-list funs)])
-          (shadow-script-proc fun (dynamic-require the-submod fun)))
-        "\n")))))
+    (define props-dict (get-property-dicts f))
+    (define funs (dict-keys props-dict))
+    (string-append
+     (make-header f)
+     "\n"
+     (string-join
+      (for/list ([(fun props) (in-dict props-dict)])
+        (shadow-script-proc fun props))
+      "\n"))))
 
 
 (module+ main
-  (define f (string->path
-             "/home/orseau/Unison/Prog/Racket/quickscript-extra/scripts/bookmarks.rkt"))
+  (require syntax/modresolve
+           racket/path)
+  (define f (build-path (path-only (resolve-module-path 'quickscript-extra))
+                         "scripts" "bookmarks.rkt"))
   (displayln (make-shadow-script f)))
