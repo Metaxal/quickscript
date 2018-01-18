@@ -10,6 +10,8 @@ raco pkg install https://github.com/Metaxal/quickscript.git
 ```
 You will need to restart DrRacket. A new `Scripts` menu should appear.
 
+You may want to install [additional scripts](https://github.com/Metaxal/quickscript-extra), but Quickscript can also be used alone.
+
 ## 2. Usage
 
 Have a look at the new menu.
