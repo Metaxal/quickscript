@@ -45,7 +45,9 @@ It should then be very fast to load.
 
 (define (compile-user-scripts)
   (define my-compiler (compile-zos #f #:module? #t))
-  (my-compiler (user-script-files) 'auto))
+  (time-info
+   "Compiling user scripts"
+   (my-compiler (user-script-files) 'auto)))
 
 (define-namespace-anchor a)
 

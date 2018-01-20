@@ -23,6 +23,7 @@
       (new-library)))
 
 (define (save! lib [file library-file])
+  (make-directory* user-script-dir)
   (write-to-file lib file #:exists 'replace))
 
 (define (directories lib)
