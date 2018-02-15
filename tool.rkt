@@ -167,12 +167,14 @@ It should then be very fast to load.
             (case output-to
               [(new-tab)
                (create-new-tab)
-               (insert-to-text (get-the-text-editor))] ; get the newly created text
+               (define new-defs (get-definitions-text))
+               (send new-defs select-all) ; get the newly created text
+               (insert-to-text new-defs)]
               [(selection)
                (insert-to-text text)]
               [(message-box)
                (when (string? str-out)
-                 (message-box "Ouput" str-out this))]
+                 (message-box "Output" str-out this))]
               [(clipboard)
                (when (string? str-out)
                  (send the-clipboard set-clipboard-string str-out 0))]
