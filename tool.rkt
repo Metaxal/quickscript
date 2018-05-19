@@ -181,7 +181,9 @@ It should then be very fast to load.
               )))
 
         (define (open-help)
-          (send-main-page #:sub "quickscript/index.html"))
+          (perform-search "quickscript")
+          ; Does not seem to work well. 
+          #;(send-main-page #:sub "quickscript/index.html"))
 
         (define (bug-report)
           (send-url "https://github.com/Metaxal/quickscript/issues"))
