@@ -95,7 +95,11 @@
               [checked?             (lib:exclude! the-lib dir file)]
               [else                 (lib:include! the-lib dir file)])
         (save!)
-        (set-files-lb dir)))
+        (define files-lb-selection (send files-lb get-selection))
+        (set-files-lb dir)
+        ; Restore the previously selected item
+        (send files-lb set-selection files-lb-selection))
+      (update-bt-files-un/check))
 
     (define (shadow-selected-file)
       (define-values (dir checked? file) (get-dir+check+file))
@@ -211,12 +215,7 @@
                 [(list-box-dclick)
                  (ex/include-selected-file)]
                 [else
-                 (define-values (dir checked? file)
-                   (get-dir+check+file))
-                 (when file
-                   (send bt-files-un/check set-label
-                         (if checked? "Disa&ble" "Ena&ble"))
-                   (set-msg-help-string dir file))]))]))
+                 (update-bt-files-un/check)]))]))
 
     (define bt-files-panel (new horizontal-panel% [parent files-panel]
                                 [stretchable-height #f]
@@ -225,6 +224,14 @@
       (new button% [parent bt-files-panel]
            [label "Disa&ble"]
            [callback (λ(bt ev) (ex/include-selected-file))]))
+
+    (define (update-bt-files-un/check)
+      (define-values (dir checked? file)
+        (get-dir+check+file))
+      (when file
+        (send bt-files-un/check set-label
+              (if checked? "Disa&ble" "Ena&ble"))
+        (set-msg-help-string dir file)))
   
     (define bt-files-shadow
       (new button% [parent bt-files-panel]
