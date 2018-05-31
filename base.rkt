@@ -62,7 +62,7 @@
     (help-string . "My amazing script")
     (output-to . selection) ; outputs the result in a new tab
     (persistent? . #f)
-    (os-types . (unix macos windows)) ; list of supported os types
+    (os-types . (unix macosx windows)) ; list of supported os types
     ))
 
 (define this-os-type (system-type 'os))
