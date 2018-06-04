@@ -80,7 +80,7 @@ When all of them are used, a script can look like this:
     #:shortcut-prefix (ctl shift)
     #:output-to selection
     #:persistent
-    #:os-types (unix macos windows)
+    #:os-types (unix macosx windows)
     ;; Procedure with its arguments:
     (λ(selection #:editor ed #:frame fr #:interactions ints #:file f)
       "Hello world!")))
@@ -225,10 +225,10 @@ There are some additional properties:
 
   }
  
- @item{@racket[#:os-types (listof (one-of/c unix macos windows))]
+ @item{@racket[#:os-types (listof (one-of/c unix macosx windows))]
         
   This keyword must be followed by a list of supported os-types.
-  Defaults to all types, i.e. @racket[(unix macos windows)].
+  Defaults to all types, i.e. @racket[(unix macosx windows)].
   
  }]
 
