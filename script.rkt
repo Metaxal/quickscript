@@ -61,10 +61,10 @@
                    (~optional (~seq #:os-types 
                                            (~and os-types-val
                                                  [(~alt (~optional (~datum unix))
-                                                        (~optional (~datum macos))
+                                                        (~optional (~datum macosx))
                                                         (~optional (~datum windows)))
                                                   ...]))
-                                     #:defaults ([os-types-val #'(unix macos windows)])))
+                                     #:defaults ([os-types-val #'(unix macosx windows)])))
         ...
         rhs:expr)
      (add-submod-content!
