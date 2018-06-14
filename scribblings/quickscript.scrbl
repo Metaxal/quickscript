@@ -42,7 +42,7 @@ You need to restart DrRacket. Now you should have a new item @italic{Scripts} in
 You can use Quickscript on its own, but the Quickscript Extra package has a wide range of useful scripts as well as some 
 example scripts intended for cutsomisation by the user.
 
-To install, either look for @tt{quickscript-extra} in the DrRacket menu @italic{File>Package Manager},
+To install it, either look for @tt{quickscript-extra} in the DrRacket menu @italic{File>Package Manager},
 or run the raco command:
 @commandline{raco pkg install quickscript-extra}
 
@@ -53,7 +53,7 @@ or on the command line with
 
 @commandline{$ racket -l quickscript-extra/register}
 
-The click on @italic{Scripts>Manage scripts>Compile scripts and reload}. (There is no need to restart DrRacket)
+Then click on @italic{Scripts>Manage scripts>Compile scripts and reload}. (There is no need to restart DrRacket.)
 
 @section{Make your own script: First simple example}
 
