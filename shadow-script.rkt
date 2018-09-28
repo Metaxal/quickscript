@@ -28,7 +28,7 @@
   #:shortcut @(dstr 'shortcut)
   #:shortcut-prefix @(dstr 'shortcut-prefix)
   #:output-to @(dstr 'output-to)
-  @(if (dstr 'persistent?)
+  @(if (dict-ref props 'persistent?)
         "#:persistent"
         "")
   @|shadow-prefix|@fun-str)
