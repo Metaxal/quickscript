@@ -91,13 +91,6 @@
 
 
 ;; The following examples should raise explicit syntax errors
-#;(define-script my-script
-  ([label "My Script"]
-   [menu-path ("a" "b")]
-   [persistent? #t]
-   [labelito "hey"])
-  (λ(str)"yeah"))
-
 
 #;(define-script my-script
   #:label "My Script2"
