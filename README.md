@@ -5,9 +5,15 @@ The scripts are automatically accessible from a new menu in DrRacket.
 
 ## 1. Installation
 
+* From DrRacket:
+In DrRacket, in `File>Package` `manager>Source`, type
+`https://github.com/Metaxal/quickscript.git`.
+
+* Or from the command line:
 ```
 raco pkg install https://github.com/Metaxal/quickscript.git
 ```
+
 You will need to restart DrRacket. A new `Scripts` menu should appear.
 
 You may want to install [additional scripts](https://github.com/Metaxal/quickscript-extra), but Quickscript can also be used alone.
