@@ -3,6 +3,8 @@
 Quickscript is a tool for DrRacket which allows to quickly and easily extend DrRacket features, without having to restart it.
 The scripts are automatically accessible from a new menu in DrRacket.
 
+[[Slides from RacketCon 2018](https://drive.google.com/open?id=1ZDtEZ5XIWemWXC5L4Qu-FhuDieRPHwvU)]
+
 ## 1. Installation
 
 * From DrRacket:
