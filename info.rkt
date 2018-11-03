@@ -1,22 +1,19 @@
-#lang setup/infotab
+#lang info
 
 (define deps
   '("base"
-    "at-exp-lib"
-    "drracket"
     "drracket-plugin-lib"
     "gui-lib"
-    "html-lib"
     "net-lib"
-    "slideshow-lib"
-    "srfi-lite-lib"
+    "scribble-lib"))
+
+(define build-deps
+  '("at-exp-lib"
+    "drracket"
     "gui-doc"
     "racket-doc"
-    "racket-index"
-    "scribble-lib"
-    ))
-
-(define build-deps '("draw-doc" "rackunit-lib"))
+    "draw-doc"
+    "rackunit-lib"))
 
 (define name                 "Quickscript")
 (define drracket-tools       '(("tool.rkt")))
@@ -27,13 +24,3 @@
 
 (define compile-omit-paths
   '())
-
-(define blurb
-  '("Easily write scripts for DrRacket."))
-
-(define required-core-version  "6.0")
-(define repositories           '("4.x"))
-(define categories             '(devtools))
-
-(define can-be-loaded-with  'none)
-(define primary-file        "tool.rkt")
