@@ -66,7 +66,7 @@ It should then be very fast to load.
                  create-new-tab
                  )
 
-        (define (get-the-text-editor)
+        (define/private (get-the-text-editor)
           ; for a frame:text% :
           ;(define text (send frame get-editor))
           ; for DrRacket:
@@ -77,10 +77,10 @@ It should then be very fast to load.
 
         (define frame this)
 
-        (define (prop-dict-ref props key)
+        (define/private (prop-dict-ref props key)
           (dict-ref props key (dict-ref props-default key)))
 
-        (define (new-script)
+        (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
                                            #:validate non-empty-string?))
           (when name
@@ -96,14 +96,14 @@ It should then be very fast to load.
             (edit-script file-path)))
 
         ;; file: path?
-        (define (edit-script file)
+        (define/private (edit-script file)
           (when file
             ; For frame:text% :
             ;(send (get-the-text-editor) load-file file)
             ; For DrRacket:
             (send this open-in-new-tab file)))
 
-        (define (open-script)
+        (define/private (open-script)
           (define file (get-file "Open a script" frame user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
@@ -112,11 +112,11 @@ It should then be very fast to load.
         ;; the module is instanciated only once, and made available for future calls.
         (define namespace-dict (make-hash))
 
-        (define (unload-persistent-scripts)
+        (define/private (unload-persistent-scripts)
           (set! namespace-dict (make-hash)))
 
         ;; f: path?
-        (define (run-script fun file output-to persistent?)
+        (define/private (run-script fun file output-to persistent?)
           ; For frame:text% :
           ;(define text (send frame get-editor))
           ; For DrRacket:
@@ -141,7 +141,7 @@ It should then be very fast to load.
           (define file-str (path->string file))
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
-            (with-handlers ([exn:fail? (λ(e)(error-message-box
+            (with-handlers ([exn:fail? (λ (e) (error-message-box
                                              (path->string (file-name-from-path file))
                                              e)
                                          #f)])
@@ -154,7 +154,7 @@ It should then be very fast to load.
                                  (#:file          . ,ed-file)
                                  (#:frame         . ,this))])
                   (let-values ([(_ kws) (procedure-keywords f)])
-                    (let ([k-v (sort (map (λ(k)(assoc k kw-dict)) kws)
+                    (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
                                      keyword<? #:key car)])
                       (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
           (define (insert-to-text text)
@@ -180,12 +180,12 @@ It should then be very fast to load.
                  (send the-clipboard set-clipboard-string str-out 0))]
               )))
 
-        (define (open-help)
+        (define/private (open-help)
           (perform-search "quickscript")
-          ; Does not seem to work well. 
+          ; Does not seem to work well.
           #;(send-main-page #:sub "quickscript/index.html"))
 
-        (define (bug-report)
+        (define/private (bug-report)
           (send-url "https://github.com/Metaxal/quickscript/issues"))
 
         (define menu-bar (send this get-menu-bar))
@@ -195,7 +195,7 @@ It should then be very fast to load.
         (define scripts-menu
           (new menu% [parent menu-bar] [label "&Scripts"]))
 
-        (define (reload-scripts-menu)
+        (define/private (reload-scripts-menu)
           (time-info
            "Building script menu"
           (set! menu-reload-count (add1 menu-reload-count))
@@ -214,7 +214,7 @@ It should then be very fast to load.
               (time-info
                (string-append "Loading file " (path->string f))
                ; catch problems and display them in a message-box
-               (with-handlers ([exn:fail? (λ(e)(error-message-box
+               (with-handlers ([exn:fail? (λ (e) (error-message-box
                                                 (path->string (file-name-from-path f))
                                                 e))])
                  (define property-dicts (get-property-dicts f))
@@ -237,7 +237,7 @@ It should then be very fast to load.
                                parent
                                (let ([menu (first menu-path)])
                                  (loop (rest menu-path)
-                                       (or (findf (λ(m)(and (is-a? m labelled-menu-item<%>)
+                                       (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
                                                             (string=? (send m get-label) menu)))
                                                   (send parent get-items))
                                            (new menu% [parent parent] [label menu])))))))
@@ -246,7 +246,7 @@ It should then be very fast to load.
                             [shortcut         shortcut]
                             [shortcut-prefix  shortcut-prefix]
                             [help-string      help-string]
-                            [callback         (λ(it ev)
+                            [callback         (λ (it ev) 
                                                 (run-script fun
                                                             f
                                                             output-to
@@ -255,19 +255,19 @@ It should then be very fast to load.
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
-                `(("&New script..."             . ,new-script)
-                  ("&Open script..."            . ,open-script)
+                `(("&New script..."             . ,(λ () (send this new-script)))
+                  ("&Open script..."            . ,(λ () (send this open-script)))
                   (separator                    . #f)
-                  ("&Library"                   . ,(λ()(make-library-gui #:parent-frame this
+                  ("&Library"                   . ,(λ () (make-library-gui #:parent-frame this
                                                                          #:drracket-parent? #t)))
-                  ("&Reload menu"                . ,reload-scripts-menu)
-                  ("&Compile scripts and reload" . ,(λ()
+                  ("&Reload menu"                . ,(λ () (send this reload-scripts-menu)))
+                  ("&Compile scripts and reload" . ,(λ () 
                                                       (compile-user-scripts)
                                                       (reload-scripts-menu)))
-                  ("&Unload persistent scripts" . ,unload-persistent-scripts)
+                  ("&Unload persistent scripts" . ,(λ () (send this unload-persistent-scripts)))
                   (separator                    . #f)
-                  ("&Help"                      . ,open-help)
-                  ("&Feedback/Bug report..."    . ,bug-report)
+                  ("&Help"                      . ,(λ () (send this open-help)))
+                  ("&Feedback/Bug report..."    . ,(λ () (send this bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
