@@ -11,7 +11,7 @@
 (define (make-header f)
 @string-append{
 #lang racket/base
-(require quickscript/script
+(require quickscript
          (prefix-in @shadow-prefix (file @(~s (path->string f)))))
 
  })

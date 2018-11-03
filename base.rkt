@@ -74,7 +74,7 @@
                                    #:script-help-string [script-help-string #f])
   @string-append{
 #lang racket/base
-(require quickscript/script)
+(require quickscript)
 
 ;; See the manual in the Scripts|Manage Scripts|Help menu for more information.
 @(if script-help-string
