@@ -37,7 +37,7 @@
 (define (files lib [dir user-script-dir])
   (define script-files
     (map path->string
-         (filter (λ(f)(script-file? (build-path dir f)))
+         (filter (λ (f) (script-file? (build-path dir f)))
                  (directory-list dir #:build? #f))))
   (define except-list (exclusions lib dir))
   (set-subtract script-files except-list))
@@ -58,12 +58,12 @@
 (define (exclude! lib dir filename)
   (dict-update! lib
                 (path-string->string dir)
-                (λ(excl)(set-add excl filename))))
+                (λ (excl) (set-add excl filename))))
 
 (define (include! lib dir filename)
   (dict-update! lib
                 (path-string->string dir)
-                (λ(excl)(set-remove excl filename))))
+                (λ (excl) (set-remove excl filename))))
 
 (define (add-third-party-script-directory! dir [excl '()])
   (define lib (load))

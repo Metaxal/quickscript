@@ -141,7 +141,7 @@ It should then be very fast to load.
           (define file-str (path->string file))
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
-            (with-handlers ([exn:fail? (λ(e)(error-message-box
+            (with-handlers ([exn:fail? (λ (e) (error-message-box
                                              (path->string (file-name-from-path file))
                                              e)
                                          #f)])
@@ -154,7 +154,7 @@ It should then be very fast to load.
                                  (#:file          . ,ed-file)
                                  (#:frame         . ,this))])
                   (let-values ([(_ kws) (procedure-keywords f)])
-                    (let ([k-v (sort (map (λ(k)(assoc k kw-dict)) kws)
+                    (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
                                      keyword<? #:key car)])
                       (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
           (define (insert-to-text text)
@@ -214,7 +214,7 @@ It should then be very fast to load.
               (time-info
                (string-append "Loading file " (path->string f))
                ; catch problems and display them in a message-box
-               (with-handlers ([exn:fail? (λ(e)(error-message-box
+               (with-handlers ([exn:fail? (λ (e) (error-message-box
                                                 (path->string (file-name-from-path f))
                                                 e))])
                  (define property-dicts (get-property-dicts f))
@@ -237,7 +237,7 @@ It should then be very fast to load.
                                parent
                                (let ([menu (first menu-path)])
                                  (loop (rest menu-path)
-                                       (or (findf (λ(m)(and (is-a? m labelled-menu-item<%>)
+                                       (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
                                                             (string=? (send m get-label) menu)))
                                                   (send parent get-items))
                                            (new menu% [parent parent] [label menu])))))))
@@ -246,7 +246,7 @@ It should then be very fast to load.
                             [shortcut         shortcut]
                             [shortcut-prefix  shortcut-prefix]
                             [help-string      help-string]
-                            [callback         (λ(it ev)
+                            [callback         (λ (it ev) 
                                                 (run-script fun
                                                             f
                                                             output-to
@@ -258,10 +258,10 @@ It should then be very fast to load.
                 `(("&New script..."             . ,new-script)
                   ("&Open script..."            . ,open-script)
                   (separator                    . #f)
-                  ("&Library"                   . ,(λ()(make-library-gui #:parent-frame this
+                  ("&Library"                   . ,(λ () (make-library-gui #:parent-frame this
                                                                          #:drracket-parent? #t)))
                   ("&Reload menu"                . ,reload-scripts-menu)
-                  ("&Compile scripts and reload" . ,(λ()
+                  ("&Compile scripts and reload" . ,(λ () 
                                                       (compile-user-scripts)
                                                       (reload-scripts-menu)))
                   ("&Unload persistent scripts" . ,unload-persistent-scripts)

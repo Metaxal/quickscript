@@ -82,7 +82,7 @@
      "")
 (define-script @proc-name
   #:label "@label"
-  (λ(selection)
+  (λ (selection) 
     #f))
 })
 
@@ -98,7 +98,7 @@
 (define (get-script-help-string script-filename)
   (dynamic-require (make-submod-path script-filename)
                    'quickscript-module-help-string
-                   (λ()#f)))
+                   (λ () #f)))
 
 (define (property-dict? v)
   (and (dict? v)

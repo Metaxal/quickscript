@@ -99,6 +99,6 @@
   #:shortcut 'f9
   #:shortcut-prefixx '(ctl shift)
   ;#:persistent
-  (λ(str)"yeah2"))
+  (λ (str) "yeah2"))
 
 

@@ -44,11 +44,11 @@
     (define (set-files-lb dir)
       (define files
         (map path->string
-             (filter (λ(f)(script-file? (build-path dir f)))
+             (filter (λ (f) (script-file? (build-path dir f)))
                      (directory-list dir #:build? #f))))
       (define excluded-files (lib:exclusions the-lib dir))
       (send files-lb set
-            (map (λ(f)(check+file->un/checked-file (member f excluded-files) f))
+            (map (λ (f) (check+file->un/checked-file (member f excluded-files) f))
                  files)))
 
     ;; Returns the current selected dir, file and whether it is checked,
@@ -187,17 +187,17 @@
                         [label "Directories"]
                         [choices (lib:directories the-lib)]
                         [style '(single vertical-label)]
-                        [callback (λ(lb ev) (dir-lb-select))]))
+                        [callback (λ (lb ev)  (dir-lb-select))]))
 
     (define bt-dir-panel (new horizontal-panel% [parent dir-panel]
                               [stretchable-height #f]
                               [alignment '(center center)]))
     (define bt-dir-add (new button% [parent bt-dir-panel]
                             [label "&Add"]
-                            [callback (λ(bt ev) (add-directory))]))
+                            [callback (λ (bt ev)  (add-directory))]))
     (define bt-dir-remove (new button% [parent bt-dir-panel]
                                [label "&Remove"]
-                               [callback (λ(bt ev) (remove-selected-dir))]))
+                               [callback (λ (bt ev)  (remove-selected-dir))]))
   
     (define bt-dir-panel2 (new horizontal-panel% [parent dir-panel]
                                [stretchable-height #f]))
@@ -210,7 +210,7 @@
            [choices '()]
            [style '(extended vertical-label)]
            [callback
-            (λ(lb ev)
+            (λ (lb ev) 
               (case (send ev get-event-type)
                 [(list-box-dclick)
                  (ex/include-selected-file)]
@@ -223,7 +223,7 @@
     (define bt-files-un/check
       (new button% [parent bt-files-panel]
            [label "Disa&ble"]
-           [callback (λ(bt ev) (ex/include-selected-file))]))
+           [callback (λ (bt ev)  (ex/include-selected-file))]))
 
     (define (update-bt-files-un/check)
       (define-values (dir checked? file)
@@ -236,7 +236,7 @@
     (define bt-files-shadow
       (new button% [parent bt-files-panel]
            [label "S&hadow"]
-           [callback (λ(bt ev) (shadow-selected-file))]))
+           [callback (λ (bt ev)  (shadow-selected-file))]))
   
     (define bt-files-edit #f)
     (when drracket-parent?
@@ -244,7 +244,7 @@
             (new button% [parent bt-files-panel]
                  [label "&Edit"]
                  [callback
-                  (λ(bt ev)
+                  (λ (bt ev) 
                     (define-values (dir checked? file)
                       (get-dir+check+file))
                     (when (and dir file)
@@ -262,7 +262,7 @@
 
     (define bt-close (new button% [parent lib-panel]
                           [label "&Close"]
-                          [callback (λ(bt ev)(send fr show #f))]))
+                          [callback (λ (bt ev) (send fr show #f))]))
 
     (dir-lb-select user-script-dir)
 

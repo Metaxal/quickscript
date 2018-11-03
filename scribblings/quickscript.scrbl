@@ -3,6 +3,7 @@
 @(require racket/file
           racket/path
           racket/runtime-path
+          (for-label quickscript/script)
           (for-syntax racket/base) ; for build-path in runtime-path
           (for-label racket/gui)
           (for-label drracket/tool-lib))
@@ -65,7 +66,7 @@ In the .rkt file that just opened in DrRacket, modify the @racket[define-script]
 @(racketblock
   (define-script reverse
     #:label "Reverse"
-    (λ(selection)
+    (λ (selection) 
       (list->string (reverse (string->list selection))))))
 and save the file.
 (Note: if you later change the @racket[label] property, you will need to reload the menu by clicking on
@@ -100,10 +101,40 @@ When all of them are used, a script can look like this:
     #:persistent
     #:os-types (unix macosx windows)
     ;; Procedure with its arguments:
-    (λ(selection #:editor ed #:frame fr #:interactions ints #:file f)
+    (λ (selection #:frame fr #:editor ed #:definitions defs #:interactions ints #:file f) 
       "Hello world!")))
 
 Below we detail first the procedure and its arguments and then the script's properties.
+
+@;subsection{At a glance}
+@;{
+@defform[(define-script name
+           property ...
+           proc)
+         #:grammar
+         [(property (code:line)
+                    (code:line #:help-string help-string)
+                    (code:line #:menu-path (menu-elt ...))
+                    (code:line #:shortcut shortcut)
+                    (code:line #:shortcut-prefix shortcut-prefix)
+                    (code:line #:output-to output-to))
+          ]
+         #:contracts
+         [(name label-string?)
+          (help-string string?)
+          (menu-elt label-string?)
+          (shortcut (or/c char? symbol? #f))
+          (shortcut-prefix (and/c (listof (or/c 'alt 'cmd 'meta 'ctl
+                                                'shift 'option))
+                                  (λ (x) (implies (equal? 'unix (system-type))
+                                                  (not (and (member 'alt x)
+                                                            (member 'meta x)))))
+                                  (λ (x) (equal? x (remove-duplicates x))))
+                           #;(get-default-shortcut-prefix))
+          (output-to (or/c ))
+          (proc procedure?)]
+         ]{See following subsections for a complete description.}
+          }
 
 @subsection{The script's procedure}
 
@@ -118,10 +149,10 @@ then the current selection is replace with the return value.
 If some of the above keywords are specified in the procedure, the Script Plugin detects them and passes the
 corresponding values, so the procedure can take various forms:
 @(racketblock
-  (λ(selection)....)
-  (λ(selection #:frame fr)....)
-  (λ(selection #:file f)....)
-  (λ(selection #:editor ed #:file f)....)
+  (λ (selection) ....)
+  (λ (selection #:frame fr) ....)
+  (λ (selection #:file f) ....)
+  (λ (selection #:editor ed #:file f) ....)
   ....
   )
 
@@ -137,7 +168,7 @@ Here is the meaning of the keyword arguments:
     (define-script current-file-example
       #:label "Current file example"
       #:output-to message-box
-      (λ(selection #:file f)
+      (λ (selection #:file f) 
         (string-append "File: " (if f (path->string f) "no-file")
                        "\nSelection: " selection))))
 
@@ -174,7 +205,7 @@ Here is the meaning of the keyword arguments:
     (define-script number-tabs
       #:label "Number of tabs"
       #:output-to message-box
-      (λ(selection #:frame fr)
+      (λ (selection #:frame fr) 
         (format "Number of tabs in DrRacket: ~a"
                 (send fr get-tab-count)))))
  }]
@@ -229,7 +260,7 @@ There are some additional properties:
       #:label "Persistent counter"
       #:persistent
       #:output-to message-box
-      (λ(selection)
+      (λ (selection) 
         (set! count (+ count 1))
         (number->string count))))
 
