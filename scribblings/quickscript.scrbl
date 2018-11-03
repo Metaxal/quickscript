@@ -32,7 +32,7 @@ like DrRacket's frame and the definition or interaction editor.
 
 @section{Installation}
 
-To install, either look for @tt{quickscript} in the DrRacket menu @italic{File>Package Manager},
+To install, either look for @tt{quickscript} in the DrRacket menu @italic{File|Package Manager},
 or run the raco command:
 @commandline{raco pkg install quickscript}
 
@@ -43,7 +43,7 @@ You need to restart DrRacket. Now you should have a new item @italic{Scripts} in
 You can use Quickscript on its own, but the Quickscript Extra package has a wide range of useful scripts as well as some 
 example scripts intended for cutsomisation by the user.
 
-To install it, either look for @tt{quickscript-extra} in the DrRacket menu @italic{File>Package Manager},
+To install it, either look for @tt{quickscript-extra} in the DrRacket menu @italic{File|Package Manager},
 or run the raco command:
 @commandline{raco pkg install quickscript-extra}
 
@@ -54,11 +54,11 @@ or on the command line with
 
 @commandline{$ racket -l quickscript-extra/register}
 
-Then click on @italic{Scripts>Manage scripts>Compile scripts and reload}. (There is no need to restart DrRacket.)
+Then click on @italic{Scripts|Manage scripts|Compile scripts and reload}. (There is no need to restart DrRacket.)
 
 @section{Make your own script: First simple example}
 
-Click on the @italic{Scripts>Manage scripts>New script...} menu item, and enter @italic{Reverse} for the script name.
+Click on the @italic{Scripts|Manage scripts|New script...} menu item, and enter @italic{Reverse} for the script name.
 This creates and opens the file reverse.rkt in the user's scripts directory.
 Also, a new item automatically appears in the @italic{Scripts} menu.
 
@@ -70,9 +70,9 @@ In the .rkt file that just opened in DrRacket, modify the @racket[define-script]
       (list->string (reverse (string->list selection))))))
 and save the file.
 (Note: if you later change the @racket[label] property, you will need to reload the menu by clicking on
-@italic{Scripts>Manage scripts>Reload scripts menu} after saving the file).
+@italic{Scripts|Manage scripts|Reload scripts menu} after saving the file).
 
-Then go to a new tab, type some text, select it, and click on @italic{Scripts>Reverse}, and voilà!
+Then go to a new tab, type some text, select it, and click on @italic{Scripts|Reverse}, and voilà!
 
 @section{Into more details}
 
@@ -267,7 +267,7 @@ There are some additional properties:
   If the script is persistent, the counter increases at each invocation of the script via the menu,
   whereas it always displays 1 if the script is not persistent.
 
-  Note: Persistent scripts can be "unloaded" by clicking on the @italic{Scripts>Manage scripts>Unload persistent scripts} menu item.
+  Note: Persistent scripts can be "unloaded" by clicking on the @italic{Scripts|Manage scripts|Unload persistent scripts} menu item.
   In the previous example, this will reset the counter.
 
   @;See a more detailed example in @example-link{persistent-counter.rkt}.
@@ -282,15 +282,15 @@ There are some additional properties:
  }]
 
 If changes are made to these properties, the Scripts menu will probably need to be reloaded
-by clicking on @italic{Scripts>Manage scripts>Reload scripts menu}.
+by clicking on @italic{Scripts|Manage scripts|Reload scripts menu}.
 
 @section{Script library}
 
 When the user creates a new script, the latter is placed into a sub-directory of
 @racket[(find-system-path 'pref-dir)].
-A direct access to this folder is provided via the @italic{Scripts>Manage scripts>Open script...} menu entry.
+A direct access to this folder is provided via the @italic{Scripts|Manage scripts|Open script...} menu entry.
 
-Additional directories to look for scripts can be added via the @italic{Scripts>Manage scripts>Library} menu entry.
+Additional directories to look for scripts can be added via the @italic{Scripts|Manage scripts|Library} menu entry.
 When a directory is added to the library, all its .rkt files (non-recursively) are considered as scripts.
 Specific files can be excluded from the library.
 
@@ -301,7 +301,7 @@ todo...
 @section{Updating the quickscript package}
 
 To update Quickscript once already installed,
-either do so through the @italic{File>Package Manager} menu in DrRacket,
+either do so through the @italic{File|Package Manager} menu in DrRacket,
 or run @tt{raco pkg update quickscript}.
 
 The user's scripts will not be modified in the process.
@@ -310,7 +310,7 @@ The user's scripts will not be modified in the process.
 
 MIT License
 
-Copyright (c) 2012 by @link["mailto:laurent.orseauREMOVEME@gmail.com"]{Laurent Orseau @"<laurent.orseauREMOVEME@gmail.com>"}.
+Copyright (c) 2012-2018 by @link["mailto:laurent.orseau@gmail.com"]{Laurent Orseau @"<laurent.orseau@gmail.com>"}.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -8,7 +8,7 @@ The scripts are automatically accessible from a new menu in DrRacket.
 ## 1. Installation
 
 * From DrRacket:
-In DrRacket, in `File>Package` `manager>Source`, type
+In DrRacket, in `File|Package` `manager|Source`, type
 `https://github.com/Metaxal/quickscript.git`.
 
 * Or from the command line:

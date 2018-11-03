@@ -76,7 +76,7 @@
 #lang racket/base
 (require quickscript/script)
 
-;; See the manual in the Scripts>Manage Scripts>Help menu for more information.
+;; See the manual in the Scripts|Manage Scripts|Help menu for more information.
 @(if script-help-string
      (string-append "\n(script-help-string " (~s script-help-string) ")\n")
      "")
