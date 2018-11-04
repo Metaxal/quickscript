@@ -3,7 +3,7 @@
 @(require racket/file
           racket/path
           racket/runtime-path
-          (for-label quickscript/script)
+          (for-label quickscript)
           (for-syntax racket/base) ; for build-path in runtime-path
           (for-label racket/gui)
           (for-label drracket/tool-lib))
@@ -103,40 +103,58 @@ When all of them are used, a script can look like this:
     #:persistent
     #:os-types (unix macosx windows)
     ;; Procedure with its arguments:
-    (λ (selection #:frame fr #:editor ed #:definitions defs #:interactions ints #:file f) 
+    (λ (selection #:frame fr
+                  #:editor ed
+                  #:definitions defs
+                  #:interactions ints
+                  #:file f) 
       "Hello world!")))
 
 Below we detail first the procedure and its arguments and then the script's properties.
 
 @;subsection{At a glance}
-@;{
+@;@{
+@defmodule[quickscript]
 @defform[(define-script name
            property ...
            proc)
          #:grammar
-         [(property (code:line)
+         [(property (code:line #:label label)
                     (code:line #:help-string help-string)
                     (code:line #:menu-path (menu-elt ...))
                     (code:line #:shortcut shortcut)
                     (code:line #:shortcut-prefix shortcut-prefix)
-                    (code:line #:output-to output-to))
+                    (code:line #:persistent? persistent?)
+                    (code:line #:output-to output-to)
+                    (code:line #:os-types os-types))
           ]
          #:contracts
-         [(name label-string?)
+         [(label label-string?)
           (help-string string?)
           (menu-elt label-string?)
           (shortcut (or/c char? symbol? #f))
-          (shortcut-prefix (and/c (listof (or/c 'alt 'cmd 'meta 'ctl
-                                                'shift 'option))
+          (shortcut-prefix (listof (or/c alt cmd meta ctl
+                                         shift option))
+                           ; More confusing than informative:
+                           #;(and/c (listof (or/c 'alt 'cmd 'meta 'ctl 'shift 'option))
                                   (λ (x) (implies (equal? 'unix (system-type))
                                                   (not (and (member 'alt x)
                                                             (member 'meta x)))))
                                   (λ (x) (equal? x (remove-duplicates x))))
                            #;(get-default-shortcut-prefix))
-          (output-to (or/c ))
-          (proc procedure?)]
-         ]{See following subsections for a complete description.}
-          }
+          (persistent? boolean?)
+          (output-to (or/c selection new-tab message-box clipboard))
+          (os-types (or/c macosx unix windows))
+          (proc (λ (selection [#:editor ed]
+                              [#:definitions defs]
+                              [#:interactions ints]
+                              [#:frame fr]
+                              [#:file f])
+                  body ...))]
+         ]{Note that the arguments of the properties are literals, not expressions, so
+           they must not be quoted.
+ See the following subsections for a complete description.}
+@;          }
 
 @subsection{The script's procedure}
 
@@ -231,7 +249,7 @@ There are some additional properties:
   Note that different scripts in different files can share the same submenus.
 
  }
- @item{@racket[#:output-to : (one-of/c selection new-tab message-box clipboard #f) = selection]
+ @item{@racket[#:output-to : (or/c selection new-tab message-box clipboard #f) = selection]
 
   If @racket[selection], the output of the procedure replaces the
   selection in the current editor (definitions or interactions),
@@ -298,7 +316,16 @@ Specific files can be excluded from the library.
 
 @section{Shadow scripts}
 
-todo...
+When a script is installed from a third party package (like quickscript-extra), it comes with its set of own values for its properties.
+These values may not suit the user who may want to redefine some of them, like the menu path or the keyboard shortcuts.
+An obvious choice for the user is to copy/paste the entire script, but this would prevent from benefiting from further bug fixes and enhancements made by the writer of the original script.
+
+To solve this problem, the user can instead make a @italic{shadow script},
+which creates a new script in the user's directory, with its own set of properties
+that can be changed by the user, but the procedure of this script is bound to that of the original script.
+
+To make a shadow script, open the script library in @gui{Scripts|Manage scripts|Library}, navigate to the third-party script and click on @gui{Shadow}.
+
 
 @section{Updating the quickscript package}
 
