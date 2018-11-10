@@ -1,8 +1,10 @@
 #lang scribble/manual
 
 @(require racket/file
+          racket/list
           racket/path
           racket/runtime-path
+          scribble/racket
           (for-label quickscript)
           (for-syntax racket/base) ; for build-path in runtime-path
           (for-label racket/gui)
@@ -110,51 +112,50 @@ When all of them are used, a script can look like this:
                   #:file f) 
       "Hello world!")))
 
+Note that the arguments of the properties are literals, not expressions, so they must not be quoted.
 Below we detail first the procedure and its arguments and then the script's properties.
 
+@(define (elem-symbol sym)
+   (elem (symbol->string sym) #:style symbol-color))
+
+@(define (grammar-choice . syms)
+   (apply
+    elem
+    (add-between (map (λ (s) (if (symbol? s)
+                                 (elem-symbol s)
+                                 s))
+                      syms)
+                 (elem " | "))))
 @;subsection{At a glance}
-@;@{
+
 @defmodule[quickscript]
 @defform[(define-script name
            property ...
            proc)
          #:grammar
-         [(property (code:line #:label label)
-                    (code:line #:help-string help-string)
-                    (code:line #:menu-path (menu-elt ...))
-                    (code:line #:shortcut shortcut)
-                    (code:line #:shortcut-prefix shortcut-prefix)
-                    (code:line #:persistent? persistent?)
+          ; Do not split these line (verbatim typesetting)
+         [(property (code:line #:label label-string)
+                    (code:line #:help-string string)
+                    (code:line #:menu-path (label-string ...))
+                    (code:line #:shortcut char #,(elem "|") symbol #,(elem "|") #f)
+                    (code:line #:shortcut-prefix (shortcut-prefix ...))
+                    (code:line #:persistent? #t #,(elem "|") #f)
                     (code:line #:output-to output-to)
-                    (code:line #:os-types os-types))
+                    (code:line #:os-types (os-type ...) ))
+          (shortcut-prefix #,(grammar-choice 'alt 'cmd 'meta 'ctl 'shift 'option))
+          (output-to #,(grammar-choice 'selection 'new-tab 'message-box
+                                       'clipboard (racket #f)))
+          (os-type #,(grammar-choice 'macosx 'unix 'windows))
+          (proc (code:line (#,(elem-symbol 'λ) (selection-id
+                               [#:editor editor-id]
+                               [#:definitions definitions-id]
+                               [#:interactions interactions-id]
+                               [#:frame frame-id]
+                               [#:file file-id])
+                             body-expr ...
+                             string-expr #,(elem "|") void-expr #,(elem "|") #f)))
           ]
-         #:contracts
-         [(label label-string?)
-          (help-string string?)
-          (menu-elt label-string?)
-          (shortcut (or/c char? symbol? #f))
-          (shortcut-prefix (listof (or/c alt cmd meta ctl
-                                         shift option))
-                           ; More confusing than informative:
-                           #;(and/c (listof (or/c 'alt 'cmd 'meta 'ctl 'shift 'option))
-                                  (λ (x) (implies (equal? 'unix (system-type))
-                                                  (not (and (member 'alt x)
-                                                            (member 'meta x)))))
-                                  (λ (x) (equal? x (remove-duplicates x))))
-                           #;(get-default-shortcut-prefix))
-          (persistent? boolean?)
-          (output-to (or/c selection new-tab message-box clipboard))
-          (os-types (or/c macosx unix windows))
-          (proc (λ (selection [#:editor ed]
-                              [#:definitions defs]
-                              [#:interactions ints]
-                              [#:frame fr]
-                              [#:file f])
-                  body ...))]
-         ]{Note that the arguments of the properties are literals, not expressions, so
-           they must not be quoted.
- See the following subsections for a complete description.}
-@;          }
+         ]{See the following subsections for a complete description.}
 
 @subsection{The script's procedure}
 
