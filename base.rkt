@@ -72,11 +72,11 @@
 ;; TODO: extend this with a given property-dict
 (define (make-simple-script-string proc-name label
                                    #:script-help-string [script-help-string #f])
+  ;; See the manual in the Scripts|Manage Scripts|Help menu for more information.
   @string-append{
 #lang racket/base
 (require quickscript)
 
-;; See the manual in the Scripts|Manage Scripts|Help menu for more information.
 @(if script-help-string
      (string-append "\n(script-help-string " (~s script-help-string) ")\n")
      "")
