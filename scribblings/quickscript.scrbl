@@ -112,7 +112,7 @@ When all of them are used, a script can look like this:
                   #:file f) 
       "Hello world!")))
 
-Note that the arguments of the properties are literals, not expressions, so they must not be quoted.
+Note that the arguments of the properties are literals, not expressions, so they must @italic{not} be quoted.
 Below we detail first the procedure and its arguments and then the script's properties.
 
 @(define (elem-symbol sym)
@@ -153,9 +153,16 @@ Below we detail first the procedure and its arguments and then the script's prop
                                [#:frame frame-id]
                                [#:file file-id])
                              body-expr ...
-                             string-expr #,(elem "|") void-expr #,(elem "|") #f)))
+                             return-expr))) ;string-expr #,(elem "|") void-expr #,(elem "|") #f
           ]
          ]{See the following subsections for a complete description.}
+
+Observe again that the arguments of the properties are literals and not expressions.
+This is because the script file is read twice for different purposes.
+The first time, Quickscript reads the script file to extract the minimum information necessary to build the menu items in DrRacket.
+No Racket operation is performed at this stage so as to be as light and quick as possible.
+Then, when the corresponding menu item is clicked, Quickscript reads the script file a second time, this time to actually read and visit the Racket module and call the corresponding procedure.
+That is, the script modules are instantiated only on demand to reduce the loading time and memory footprint.
 
 @subsection{The script's procedure}
 
