@@ -3,7 +3,7 @@
   (for-syntax racket/base) ; for help menu
   compiler/compiler
   drracket/tool ; necessary to build a drracket plugin
-  framework ; for preferences (too heavy a package?)
+  #;framework ; for preferences (too heavy a package?)
   help/search
   net/sendurl ; for the help menu
   racket/class
@@ -30,10 +30,6 @@ Click on Scripts|Manage scripts|Compile user scripts.
 It should then be very fast to load.
 
 |#
-
-;; Make sure quickscript's and the user's scripts directories exist.
-;; The library will also be stored in the first one.
-(make-directory* user-script-dir)
 
 (define (user-script-files)
   (lib:all-files (lib:load library-file)))
@@ -89,6 +85,9 @@ It should then be very fast to load.
             (define proc-name (string-foldcase (string-replace name " " "-")))
             (define label name)
 
+            ;; Make sure the directory containing the script exists
+            (make-directory* user-script-dir)
+            ;; Write the script to file
             (with-output-to-file file-path
               (λ _
                 (displayln (make-simple-script-string proc-name label))))

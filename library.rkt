@@ -38,7 +38,9 @@
   (define script-files
     (map path->string
          (filter (λ (f) (script-file? (build-path dir f)))
-                 (directory-list dir #:build? #f))))
+                 (if (directory-exists? dir)
+                     (directory-list dir #:build? #f)
+                     '()))))
   (define except-list (exclusions lib dir))
   (set-subtract script-files except-list))
 
