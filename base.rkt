@@ -75,11 +75,9 @@
   ;; See the manual in the Scripts|Manage Scripts|Help menu for more information.
   @string-append{
 #lang racket/base
-(require quickscript)
 
-@(if script-help-string
-     (string-append "\n(script-help-string " (~s script-help-string) ")\n")
-     "")
+(require quickscript)
+@(if script-help-string (string-append "\n(script-help-string " (~s script-help-string) ")\n") "")
 (define-script @proc-name
   #:label "@label"
   (λ (selection) 
