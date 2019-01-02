@@ -5,6 +5,8 @@ The scripts are automatically accessible from a new menu in DrRacket.
 
 [[Slides from RacketCon 2018](https://drive.google.com/open?id=1ZDtEZ5XIWemWXC5L4Qu-FhuDieRPHwvU)]
 
+*Note:* Quickscript (but not yet quickscript-extra) now comes bundled with DrRacket.
+
 ## 1. Installation
 
 * From DrRacket:
