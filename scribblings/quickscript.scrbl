@@ -45,7 +45,7 @@ You need to restart DrRacket. Now you should have a new item @gui{Scripts} in th
 @subsection{Quickscript Extra}
 
 You can use Quickscript on its own, but the Quickscript Extra package has a wide range of useful scripts as well as some 
-example scripts intended for cutsomisation by the user.
+example scripts intended for customisation by the user.
 
 To install it, either look for @tt{quickscript-extra} in the DrRacket menu @gui{File|Package Manager},
 or run the raco command:
