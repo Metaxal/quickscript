@@ -32,21 +32,26 @@
 (define (exclusions lib dir)
   (dict-ref lib (path-string->string dir) '()))
 
-;; Returns the list of script files in the given directory that are not listed as exclusions
-;; in the library.
-(define (files lib [dir user-script-dir])
+;; Returns the list of script files in the given directory.
+;; If exclude is not #f, then only such files that are not listed as exclusions
+;; in the library are returned.
+(define (files lib [dir user-script-dir] #:exclude? [exclude? #t])
   (define script-files
     (map path->string
          (filter (λ (f) (script-file? (build-path dir f)))
                  (if (directory-exists? dir)
                      (directory-list dir #:build? #f)
                      '()))))
-  (define except-list (exclusions lib dir))
-  (set-subtract script-files except-list))
+  (cond [exclude?
+         (define except-list (exclusions lib dir))
+         (set-subtract script-files except-list)]
+        [else script-files]))
 
-(define (all-files lib)
+;; Returns the list full paths of script files --in all listed directories of the library.
+;; The keyword argument `exclude?' is as in `files'.
+(define (all-files lib #:exclude? [exclude? #t])
   (for*/list ([dir (in-dict-keys lib)]
-              [f (in-list (files lib dir))])
+              [f (in-list (files lib dir #:exclude? exclude?))])
     (build-path dir f)))
 
 
@@ -92,10 +97,11 @@
                        path-string?
                        . -> . (listof string?))]
  [files               ([library?]
-                       [path-string?]
+                       [path-string? #:exclude? boolean?]
                        . ->* . (listof string?))]
- [all-files           (library?
-                       . -> . (listof path-string?))]
+ [all-files           ([library?]
+                       [#:exclude? boolean?]
+                       . ->* . (listof path-string?))]
  [add-directory!      ([library?
                         (and/c path-string? absolute-path? directory-exists?)]
                        [list?]
