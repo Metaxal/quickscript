@@ -34,7 +34,7 @@ It should then be very fast to load.
   (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
 (define (error-message-box filename e)
-  (message-box filename
+  (message-box "Quickscript caught an exception" #;filename
                (format "Error in script file ~s: ~a" filename (exn-message e))
                #f '(stop ok)))
 
@@ -161,8 +161,8 @@ It should then be very fast to load.
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
             (with-handlers ([exn:fail? (λ (e) (error-message-box
-                                             (path->string (file-name-from-path file))
-                                             e)
+                                               (path->string (file-name-from-path file))
+                                               e)
                                          #f)])
               ; See HelpDesk for "Manipulating namespaces"
               (parameterize ([current-namespace ns])
@@ -235,8 +235,8 @@ It should then be very fast to load.
                (string-append "Loading file " (path->string f))
                ; catch problems and display them in a message-box
                (with-handlers ([exn:fail? (λ (e) (error-message-box
-                                                (path->string (file-name-from-path f))
-                                                e))])
+                                                  (path->string (file-name-from-path f))
+                                                  e))])
                  (define property-dicts (get-property-dicts f))
                  (for ([(fun props) (in-dict property-dicts)])
                    (let*([label           (prop-dict-ref props 'label)]
@@ -258,7 +258,7 @@ It should then be very fast to load.
                                (let ([menu (first menu-path)])
                                  (loop (rest menu-path)
                                        (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
-                                                            (string=? (send m get-label) menu)))
+                                                              (string=? (send m get-label) menu)))
                                                   (send parent get-items))
                                            (new menu% [parent parent] [label menu])))))))
                        (new menu-item% [parent parent-menu]
