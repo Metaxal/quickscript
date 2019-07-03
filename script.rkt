@@ -56,7 +56,8 @@
                                                  (~or (~datum selection)
                                                       (~datum new-tab)
                                                       (~datum message-box)
-                                                      (~datum clipboard))))
+                                                      (~datum clipboard)
+                                                      #f)))
                                      #:defaults ([output-to-val #'selection]))
                    (~optional (~seq #:os-types 
                                            (~and os-types-val
