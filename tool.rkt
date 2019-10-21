@@ -140,10 +140,10 @@ It should then be very fast to load.
           (define file-str (path->string file))
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
-            (with-handlers ([exn:fail? (λ (e) (error-message-box
-                                             (path->string (file-name-from-path file))
-                                             e)
-                                         #f)])
+            (with-handlers ([exn? (λ (e) (error-message-box
+                                          (path->string (file-name-from-path file))
+                                          e)
+                                    #f)])
               ; See HelpDesk for "Manipulating namespaces"
               (parameterize ([current-namespace ns])
                 (let ([f (dynamic-require file fun)]
@@ -213,9 +213,9 @@ It should then be very fast to load.
               (time-info
                (string-append "Loading file " (path->string f))
                ; catch problems and display them in a message-box
-               (with-handlers ([exn:fail? (λ (e) (error-message-box
-                                                (path->string (file-name-from-path f))
-                                                e))])
+               (with-handlers ([exn? (λ (e) (error-message-box
+                                             (path->string (file-name-from-path f))
+                                             e))])
                  (define property-dicts (get-property-dicts f))
                  (for ([(fun props) (in-dict property-dicts)])
                    (let*([label           (prop-dict-ref props 'label)]
