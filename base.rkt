@@ -1,13 +1,17 @@
 #lang at-exp racket/base
 (require racket/dict
-         racket/path
          racket/format
+         racket/path
+         compiler/compilation-path         
+         compiler/compiler
          )
 
 (provide (all-defined-out))
 
 (module+ test
   (require rackunit))
+
+(define version-bytes (string->bytes/utf-8 (version)))
 
 (define-logger quickscript)
 
@@ -152,3 +156,38 @@
          help-str
          help-str2)
   )
+
+;===================;
+;=== Compilation ===;
+;===================;
+
+(define (compile-user-scripts files)
+  ; Docs say generates a compiled file in the "compiled" directory
+  ; (thus not in the "compile d/errortrace" directory).
+  (define my-compiler (compile-zos #f #:module? #t))
+  (time-info
+   "Compiling user scripts"
+   (my-compiler files 'auto)))
+
+; Based on 'read-linklet-bundle-or-directory':
+; https://github.com/racket/racket/blob/master/racket/src/expander/compile/read-linklet.rkt#L9
+; and 'get-cached-compiled':
+; https://github.com/racket/racket/blob/master/racket/src/expander/run/cache.rkt#L76
+(define (zo-version source-file)
+  ; We (only) use "compiled" as modes, because by default DrRacket would place zos in
+  ; compiled/errortrace, but the compile-zos used in compile-user-scripts places them in
+  ; "compiled".
+  (define zo-file (get-compilation-bytecode-file source-file #:modes '("compiled")))
+  (and (file-exists? zo-file)
+       (parameterize ([read-accept-compiled #t])
+         (call-with-input-file*
+             zo-file
+           (lambda (in)
+             (read-bytes 2 in) ; consume "#~"
+             (define vers-len (min 63 (read-byte in)))
+             (read-bytes vers-len in))))))
+
+;; Is the zo file for the given source file having the same version as
+;; the current (dr)racket one?
+(define (compiled-for-current-version? source-file)
+  (equal? version-bytes (zo-version source-file)))

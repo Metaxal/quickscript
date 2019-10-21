@@ -1,7 +1,6 @@
 #lang at-exp racket/base
 (require
   (for-syntax racket/base) ; for help menu
-  compiler/compiler
   drracket/tool ; necessary to build a drracket plugin
   #;framework ; for preferences (too heavy a package?)
   help/search
@@ -31,19 +30,44 @@ It should then be very fast to load.
 
 |#
 
-(define (user-script-files)
-  (lib:all-files (lib:load library-file)))
+(define (user-script-files #:exclude? [exclude? #t])
+  (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
-(define (error-message-box filename e)
-  (message-box filename
-               (format "Error in script file ~s: ~a" filename (exn-message e))
+(define (error-message-box str e)
+  (message-box "Quickscript caught an exception"
+               (string-append str " " (exn-message e))
                #f '(stop ok)))
 
-(define (compile-user-scripts)
-  (define my-compiler (compile-zos #f #:module? #t))
-  (time-info
-   "Compiling user scripts"
-   (my-compiler (user-script-files) 'auto)))
+(define-syntax-rule (with-error-message-box str body ...)
+  (with-handlers ([exn? (λ (e) (error-message-box str e))])
+    body ...))
+
+;; Recompiles all (enabled or disabled, user and third-party) scripts that are not yet compiled
+;; for the current version.
+;; This is to prevent Quickscript trying to load from compiled after an upgrade of
+;; the Racket system, and displaying one error message for each script.
+;; It is important to recompile disabled scripts too, because these may still be
+;; dependencies of shadowing scripts.
+;; Caveat: Dependencies are not compiled automatically. Hence if a script depends on a collection
+;; (package) then the collection needs to be compiled with the correct version, otherwise
+;; an error will be raised on DrRacket startup.
+;; How to test this works:
+;; - Create a new script or use an old one that is *not* deactivated in the library
+;; - Compile it with another version of racket (install locally, not unix style,
+;; then use its old raco to setup quickscript and make the script)
+;; - In DrRacket, use the quickscript "Compiled version" to make sure it has the old version.
+;; - Exit DrRacket.
+;; - Use the new version of raco to setup (again) quickscript
+;;   If installing a new version of racket, it may be necessary to run:
+;;   $ raco pkg update --link <path-to-local-quickscript>
+;; - Restart DrRacket, the script should be compiled silently with the correct version,
+;;   and no error message should be displayed.
+;; - In the library, check that a quickscript-extra shadowed script does not raise an error
+;;   when clicking on it.
+(define (recompile-all-of-previous-version)
+  (compile-user-scripts
+   (filter (λ (f) (not (compiled-for-current-version? f)))
+           (user-script-files #:exclude? #f))))
 
 (define-namespace-anchor a)
 
@@ -140,22 +164,21 @@ It should then be very fast to load.
           (define file-str (path->string file))
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
-            (with-handlers ([exn? (λ (e) (error-message-box
-                                          (path->string (file-name-from-path file))
-                                          e)
-                                    #f)])
-              ; See HelpDesk for "Manipulating namespaces"
-              (parameterize ([current-namespace ns])
-                (let ([f (dynamic-require file fun)]
-                      [kw-dict `((#:definitions   . ,(get-definitions-text))
-                                 (#:interactions  . ,(get-interactions-text))
-                                 (#:editor        . ,text)
-                                 (#:file          . ,ed-file)
-                                 (#:frame         . ,this))])
-                  (let-values ([(_ kws) (procedure-keywords f)])
-                    (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
-                                     keyword<? #:key car)])
-                      (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
+            (with-error-message-box
+             (format "Error in script file ~s:\n" file-str)
+              
+             ; See HelpDesk for "Manipulating namespaces"
+             (parameterize ([current-namespace ns])
+               (let ([f (dynamic-require file fun)]
+                     [kw-dict `((#:definitions   . ,(get-definitions-text))
+                                (#:interactions  . ,(get-interactions-text))
+                                (#:editor        . ,text)
+                                (#:file          . ,ed-file)
+                                (#:frame         . ,this))])
+                 (let-values ([(_ kws) (procedure-keywords f)])
+                   (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
+                                    keyword<? #:key car)])
+                     (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
           (define (insert-to-text text)
             ; Inserts the text, possibly overwriting the selection:
             (send text begin-edit-sequence)
@@ -205,6 +228,7 @@ It should then be very fast to load.
            (for ([item (list-tail (send scripts-menu get-items) 2)])
              (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
              (send item delete)))
+          
           ;; Add script items.
           ;; Create an empty namespace to load all the scripts (in the same namespace)
           (parameterize ([current-namespace (make-base-empty-namespace)])
@@ -213,43 +237,43 @@ It should then be very fast to load.
               (time-info
                (string-append "Loading file " (path->string f))
                ; catch problems and display them in a message-box
-               (with-handlers ([exn? (λ (e) (error-message-box
-                                             (path->string (file-name-from-path f))
-                                             e))])
-                 (define property-dicts (get-property-dicts f))
-                 (for ([(fun props) (in-dict property-dicts)])
-                   (let*([label           (prop-dict-ref props 'label)]
-                         [menu-path       (prop-dict-ref props 'menu-path)]
-                         [shortcut        (prop-dict-ref props 'shortcut)]
-                         [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
-                                              (get-default-shortcut-prefix))]
-                         [help-string     (prop-dict-ref props 'help-string)]
-                         [output-to       (prop-dict-ref props 'output-to)]
-                         [persistent?     (prop-dict-ref props 'persistent?)]
-                         [os-types        (prop-dict-ref props 'os-types)]
-                         )
-                     (when (memq this-os-type os-types)
-                       ; Create the menu hierarchy if it doesn't exist.
-                       (define parent-menu
-                         (let loop ([menu-path menu-path] [parent scripts-menu])
-                           (if (empty? menu-path)
-                               parent
-                               (let ([menu (first menu-path)])
-                                 (loop (rest menu-path)
-                                       (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
-                                                            (string=? (send m get-label) menu)))
-                                                  (send parent get-items))
-                                           (new menu% [parent parent] [label menu])))))))
-                       (new menu-item% [parent parent-menu]
-                            [label            label]
-                            [shortcut         shortcut]
-                            [shortcut-prefix  shortcut-prefix]
-                            [help-string      help-string]
-                            [callback         (λ (it ev) 
-                                                (run-script fun
-                                                            f
-                                                            output-to
-                                                            persistent?))]))))))))))
+               (with-error-message-box
+                (format "Error in script file ~s:\n" (path->string f))
+                
+                (define property-dicts (get-property-dicts f))
+                (for ([(fun props) (in-dict property-dicts)])
+                  (let*([label           (prop-dict-ref props 'label)]
+                        [menu-path       (prop-dict-ref props 'menu-path)]
+                        [shortcut        (prop-dict-ref props 'shortcut)]
+                        [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
+                                             (get-default-shortcut-prefix))]
+                        [help-string     (prop-dict-ref props 'help-string)]
+                        [output-to       (prop-dict-ref props 'output-to)]
+                        [persistent?     (prop-dict-ref props 'persistent?)]
+                        [os-types        (prop-dict-ref props 'os-types)]
+                        )
+                    (when (memq this-os-type os-types)
+                      ; Create the menu hierarchy if it doesn't exist.
+                      (define parent-menu
+                        (let loop ([menu-path menu-path] [parent scripts-menu])
+                          (if (empty? menu-path)
+                              parent
+                              (let ([menu (first menu-path)])
+                                (loop (rest menu-path)
+                                      (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
+                                                             (string=? (send m get-label) menu)))
+                                                 (send parent get-items))
+                                          (new menu% [parent parent] [label menu])))))))
+                      (new menu-item% [parent parent-menu]
+                           [label            label]
+                           [shortcut         shortcut]
+                           [shortcut-prefix  shortcut-prefix]
+                           [help-string      help-string]
+                           [callback         (λ (it ev) 
+                                               (run-script fun
+                                                           f
+                                                           output-to
+                                                           persistent?))]))))))))))
 
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
@@ -261,7 +285,7 @@ It should then be very fast to load.
                                                                          #:drracket-parent? #t)))
                   ("&Reload menu"                . ,(λ () (reload-scripts-menu)))
                   ("&Compile scripts and reload" . ,(λ () 
-                                                      (compile-user-scripts)
+                                                      (compile-user-scripts (user-script-files))
                                                       (reload-scripts-menu)))
                   ("&Unload persistent scripts" . ,(λ () (unload-persistent-scripts)))
                   (separator                    . #f)
@@ -274,6 +298,10 @@ It should then be very fast to load.
                    [callback (λ _ (cbk))])))
         (new separator-menu-item% [parent scripts-menu])
 
+        ; Silently recompile for the new version if necessary, at the start up of DrRacket.
+        (with-error-message-box
+         "Error while recompiling all from previous version:\n"
+         (recompile-all-of-previous-version))
         (reload-scripts-menu)
         ))
 
