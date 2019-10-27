@@ -43,9 +43,11 @@
 
     (define (set-files-lb dir)
       (define files
-        (map path->string
-             (filter (λ (f) (script-file? (build-path dir f)))
-                     (directory-list dir #:build? #f))))
+        (if (directory-exists? dir)
+            (map path->string
+                 (filter (λ (f) (script-file? (build-path dir f)))
+                         (directory-list dir #:build? #f)))
+            '()))
       (define excluded-files (lib:exclusions the-lib dir))
       (send files-lb set
             (map (λ (f) (check+file->un/checked-file (member f excluded-files) f))
