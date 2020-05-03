@@ -165,20 +165,23 @@ It should then be very fast to load.
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
             (with-error-message-box
-             (format "Error in script file ~s:\n" file-str)
+                (format "Error in script file ~s:\n" file-str)
               
-             ; See HelpDesk for "Manipulating namespaces"
-             (parameterize ([current-namespace ns])
-               (let ([f (dynamic-require file fun)]
-                     [kw-dict `((#:definitions   . ,(get-definitions-text))
-                                (#:interactions  . ,(get-interactions-text))
-                                (#:editor        . ,text)
-                                (#:file          . ,ed-file)
-                                (#:frame         . ,this))])
-                 (let-values ([(_ kws) (procedure-keywords f)])
-                   (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
-                                    keyword<? #:key car)])
-                     (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
+              ; See HelpDesk for "Manipulating namespaces"
+              (let ([f (parameterize ([current-namespace ns]) (dynamic-require file fun))]
+                    [kw-dict `((#:definitions   . ,(get-definitions-text))
+                               (#:interactions  . ,(get-interactions-text))
+                               (#:editor        . ,text)
+                               (#:file          . ,ed-file)
+                               (#:frame         . ,this))])
+                ;; f is evaluated *outside* the created namespace so as to make
+                ;; all features of drracket's frame available.
+                ;; If it were evaluated inside ns, (send fr open-in-new-tab <some-file>)
+                ;; wouldn't work.
+                (let-values ([(_ kws) (procedure-keywords f)])
+                  (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
+                                   keyword<? #:key car)])
+                    (keyword-apply f (map car k-v) (map cdr k-v) str '()))))))
           (define (insert-to-text text)
             ; Inserts the text, possibly overwriting the selection:
             (send text begin-edit-sequence)
