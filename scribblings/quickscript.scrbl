@@ -266,6 +266,9 @@ There are some additional properties:
   If @racket[message-box], the return value (if a string) is displayed in a @racket[message-box].
   If @racket[clipboard], the return value (if a string) is copied to the clipboard.
   If @racket[#f], the return value is not used.
+
+  If this value is changed, make sure to reload the menu with
+  @gui{Scripts | Manage scripts | Reload menu}.
  }
  @item{@racket[#:persistent]
 
@@ -295,8 +298,14 @@ There are some additional properties:
   If the script is persistent, the counter increases at each invocation of the script via the menu,
   whereas it always displays 1 if the script is not persistent.
 
-  Note: Persistent scripts can be "unloaded" by clicking on the @gui{Scripts|Manage scripts|Unload persistent scripts} menu item.
-  In the previous example, this will reset the counter.
+  @bold{Note:} Persistent scripts can be "unloaded" by clicking on the
+  @gui{Scripts|Manage scripts|Unload persistent scripts} menu item.
+  In the previous example, this will reset the counter. Make sure to unload a persistent script
+  after editing it.
+
+  @bold{Technical point:} The script's procedure is called @emph{outside} of the namespace that was
+  used to @racket[dynamic-require] it, and inside DrRacket frame's namespace so as to have access
+  to objects in this frame.
 
   @;See a more detailed example in @example-link{persistent-counter.rkt}.
 
