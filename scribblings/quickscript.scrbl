@@ -273,8 +273,7 @@ There are some additional properties:
  @item{@racket[#:persistent]
 
   If they keyword @racket[#:persistent] is @emph{not} provided,
-  each invocation of the script is done in a fresh namespace
-  that is discarded when the procedure finishes.
+  each invocation of the script is done in a fresh namespace.
 
   But if @racket[#:persistent] is provided, a fresh namespace is created only
   the first time it is invoked, and the same namespace is re-used for the subsequent invocations.

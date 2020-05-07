@@ -281,11 +281,13 @@ It should then be very fast to load.
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
-                `(("&New script..."             . ,(λ () (new-script)))
-                  ("&Open script..."            . ,(λ () (open-script)))
-                  (separator                    . #f)
-                  ("&Library"                   . ,(λ () (make-library-gui #:parent-frame this
-                                                                         #:drracket-parent? #t)))
+                `(("&New script…"                . ,(λ () (new-script)))
+                  ("&Open script…"               . ,(λ () (open-script)))
+                  ("&Disable scripts…"           . ,(λ () (make-library-gui #:parent-frame this
+                                                                            #:drracket-parent? #t)))
+                  (separator                     . #f)
+                  ("&Library…"                   . ,(λ () (make-library-gui #:parent-frame this
+                                                                            #:drracket-parent? #t)))
                   ("&Reload menu"                . ,(λ () (reload-scripts-menu)))
                   ("&Compile scripts and reload" . ,(λ () 
                                                       (compile-user-scripts (user-script-files))
@@ -293,7 +295,7 @@ It should then be very fast to load.
                   ("&Unload persistent scripts" . ,(λ () (unload-persistent-scripts)))
                   (separator                    . #f)
                   ("&Help"                      . ,(λ () (open-help)))
-                  ("&Feedback/Bug report..."    . ,(λ () (bug-report)))
+                  ("&Feedback/Bug report…"      . ,(λ () (bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
