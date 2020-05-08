@@ -24,10 +24,10 @@
 
 @section{Introduction}
 
-Quickscript's purpose is to make it easy to extend DrRacket with small Racket scripts
-that can be used in the definition (or interaction) window, or to graphically interact with the user.
+Quickscript's makes it easy to extend DrRacket with small Racket scripts
+to automate some actions in the editor, while avoiding the need to restart DrRacket.
 
-Creating a new script is as easy as a click on a menu item.
+Creating a new script is as easy as a click on @gui{Scripts | New script…}.
 Each script is automatically added as an item to the @gui{Scripts} menu, without needing to restart DrRacket.
 A keyboard shortcut can be assigned to a script (via the menu item).
 By default, a script takes as input the currently selected text, and outputs the replacement text.
@@ -36,11 +36,7 @@ like DrRacket's frame and the definition or interaction editor.
 
 @section{Installation}
 
-To install, either look for @tt{quickscript} in the DrRacket menu @gui{File|Package Manager},
-or run the raco command:
-@commandline{raco pkg install quickscript}
-
-You need to restart DrRacket. Now you should have a new item @gui{Scripts} in the menu bar.
+Quickscript is installed automatically with DrRacket, so you don't need to do anything.
 
 @subsection{Quickscript Extra}
 
