@@ -82,6 +82,8 @@
 
 (require quickscript)
 @(if script-help-string (string-append "\n(script-help-string " (~s script-help-string) ")\n") "")
+;; Returns a replacement string for the selected string `selection`
+;; ("" if no text is selected), or `#f` to leave the selection as is.
 (define-script @proc-name
   #:label "@label"
   (λ (selection) 
