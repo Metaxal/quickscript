@@ -102,6 +102,7 @@ It should then be very fast to load.
 
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
+                                           this
                                            #:validate non-empty-string?))
           (when name
             (define filename (string-append (string-foldcase (string-replace name " " "-")) ".rkt"))
