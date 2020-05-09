@@ -2,7 +2,7 @@
 (require
   (for-syntax racket/base) ; for help menu
   drracket/tool ; necessary to build a drracket plugin
-  #;framework ; for preferences (too heavy a package?)
+  framework ; for preferences (too heavy a package?)
   help/search
   net/sendurl ; for the help menu
   racket/class
@@ -103,7 +103,8 @@ It should then be very fast to load.
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
                                            this
-                                           #:validate non-empty-string?))
+                                           #:validate non-empty-string?
+                                           #:dialog-mixin frame:focus-table-mixin))
           (when name
             (define filename (string-append (string-foldcase (string-replace name " " "-")) ".rkt"))
             (define file-path (build-path user-script-dir filename))
