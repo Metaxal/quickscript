@@ -1,4 +1,4 @@
-# Quickscript: A script system for DrRacket
+# Quickscript: Scripting engine for DrRacket
 
 Quickscript is a tool for DrRacket which allows to quickly and easily extend DrRacket features, without having to restart it.
 The scripts are automatically accessible from a new menu in DrRacket.
