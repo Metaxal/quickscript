@@ -63,14 +63,15 @@ This creates and opens the file reverse.rkt in the user's scripts directory.
 Also, a new item automatically appears in the @gui{Scripts} menu.
 
 In the .rkt file that just opened in DrRacket, modify the @racket[define-script] definition to the following:
+@margin-note{⚠ Don't name your script function @racket[reverse], it would shadow Racket's own and make the script hang.}
+@margin-note{If you later change the @racket[#:label] property, you will need to reload the menu by clicking on
+@gui{Scripts|Manage scripts|Reload scripts menu} after saving the file).}
 @(racketblock
-  (define-script reverse
+  (define-script reverse-selection
     #:label "Reverse"
     (λ (selection) 
       (list->string (reverse (string->list selection))))))
 and save the file.
-(Note: if you later change the @racket[label] property, you will need to reload the menu by clicking on
-@gui{Scripts|Manage scripts|Reload scripts menu} after saving the file).
 
 Then go to a new tab, type some text, select it, and click on @gui{Scripts|Reverse}, and voilà!
 
