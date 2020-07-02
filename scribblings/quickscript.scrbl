@@ -350,7 +350,15 @@ The user's scripts will not be modified in the process.
 
 @section{Distributing your own scripts}
 
-The best way to distribute your scripts is by creating a package.
+The @emph{simplest} way to distribute a small script s to publish it as a
+@hyperlink["https://gist.github.com/"]{gist}
+or on @hyperlink["http://pasterack.org/"]{PasteRack}, and share the link.
+A user can then copy/paste the contents into a new script.
+Don't forget to include a permissive license such as MIT/Apache 2.
+
+
+The @emph{best} way to distribute scripts is by creating a package---the user only has to install
+the package.
 Assuming your scripts are stored in the @racket["scripts"] subdirectory,
 include a file (say @racket["register.rkt"]) at the root directory of
 the package containing the following code:
