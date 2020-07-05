@@ -63,7 +63,7 @@ This creates and opens the file reverse.rkt in the user's scripts directory.
 Also, a new item automatically appears in the @gui{Scripts} menu.
 
 In the .rkt file that just opened in DrRacket, modify the @racket[define-script] definition to the following:
-@margin-note{@image["img/warning.png" #:scale 0.1] Don't name your script function @racket[reverse], it would shadow Racket's own and make the script hang.}
+@margin-note{Don't name your script function @racket[reverse], it would shadow Racket's own and make the script hang.}
 @margin-note{If you later change the @racket[#:label] property, you will need to reload the menu by clicking on
 @gui{Scripts|Manage scripts|Reload scripts menu} after saving the file).}
 @(racketblock
