@@ -16,7 +16,7 @@ You may want to install [additional scripts](https://github.com/Metaxal/quickscr
 
 Have a look at the `Scripts` menu in DrRacket.
 
-See the [docs](http://pkg-build.racket-lang.org/doc/quickscript/index.html) for more information.
+See the [docs](https://www.cs.utah.edu/plt/snapshots/current/doc/quickscript/index.html) for more information.
 
 ## 3. History
 
