@@ -1,6 +1,6 @@
 # Quickscript: Scripting engine for DrRacket
 
-Quickscript [[docs](http://pkg-build.racket-lang.org/doc/quickscript/index.html)] is a tool for DrRacket which allows to quickly and easily extend DrRacket features, without having to restart it.
+Quickscript [[docs](https://www.cs.utah.edu/plt/snapshots/current/doc/quickscript/index.html)] is a tool for DrRacket which allows to quickly and easily extend DrRacket features, without having to restart it.
 The scripts are automatically accessible from a new menu in DrRacket.
 
 The [slides from RacketCon 2018](https://github.com/Metaxal/quickscript/blob/master/docs/racketcon-2018-quickscript.pdf) provide more context on the why of Quickscript.
