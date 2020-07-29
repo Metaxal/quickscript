@@ -72,14 +72,14 @@
       #`(begin
           (provide proc)
           (define proc (list
-                        (cons 'label 'label-val)
-                        (cons 'menu-path '(menu-path-val ...))
-                        (cons 'help-string 'help-string-val)
-                        (cons 'shortcut 'shortcut-val)
-                        (cons 'shortcut-prefix 'shortcut-prefix-val)
-                        (cons 'persistent? '#,(attribute persistent-val))
-                        (cons 'output-to 'output-to-val)
-                        (cons 'os-types 'os-types-val)))))
+                        (cons 'label            'label-val)
+                        (cons 'menu-path        '(menu-path-val ...))
+                        (cons 'help-string      'help-string-val)
+                        (cons 'shortcut         'shortcut-val)
+                        (cons 'shortcut-prefix  'shortcut-prefix-val)
+                        (cons 'persistent?      '#,(attribute persistent-val))
+                        (cons 'output-to        'output-to-val)
+                        (cons 'os-types         'os-types-val)))))
      (syntax/loc stx
        (begin (provide proc)
               (define proc rhs)))]))

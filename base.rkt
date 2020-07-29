@@ -59,14 +59,16 @@
        (string-append "End  : " str ". Took " (number->string (- (current-milliseconds) ms)) "ms")))))
 
 (define props-default
-  `((label . "My Script 1") ; Should be mandatory
-    (menu-path . ())
-    (shortcut . #f)
-    (shortcut-prefix . #f) ; should be (get-default-shortcut-prefix), but this depends on gui/base
-    (help-string . "My amazing script")
-    (output-to . selection) ; outputs the result in a new tab
-    (persistent? . #f)
-    (os-types . (unix macosx windows)) ; list of supported os types
+  `((name             . #f)
+    (filepath         . #f)
+    (label            . "My Script 1") ; Should be mandatory
+    (menu-path        . ())
+    (shortcut         . #f)
+    (shortcut-prefix  . #f) ; should be (get-default-shortcut-prefix), but this depends on gui/base
+    (help-string      . "My amazing script")
+    (output-to        . selection) ; outputs the result in a new tab
+    (persistent?      . #f)
+    (os-types         . (unix macosx windows)) ; list of supported os types
     ))
 
 (define this-os-type (system-type 'os))
@@ -108,7 +110,8 @@
   (and (dict? v)
        (dict-has-key? v 'label)))
 
-;; Returns a list of dictionaries of the properties of the scripts in script-filename.
+;; Returns a list of dictionaries of the properties of the scripts in script-filename,
+;; augmented with the scripts' function and the script filepath.
 ;; IMPORTANT: Loads the file in the current namespace, so a new namespace should probably
 ;; be created with (make-base-empty-namespace).
 ;; script-filename : path-string?
@@ -122,8 +125,14 @@
             (for/list ([fun (in-list funs)])
               (define maybe-props (dynamic-require the-submod fun))
               (and (property-dict? maybe-props)
-                   (cons fun maybe-props)))))
+                   (list*
+                    (cons 'name fun)
+                    (cons 'filepath script-filepath)
+                    maybe-props)))))
   property-dicts)
+
+(define (prop-dict-ref props key)
+  (dict-ref props key (dict-ref props-default key)))
 
 (module+ test
   (require racket/file)
@@ -146,18 +155,16 @@
       (values (get-property-dicts filepath)
               (get-script-help-string filepath))))
   (check = (length prop-dicts) 1)
-  (define props (cdr (car prop-dicts)))
-  (define proc-sym2 (car (car prop-dicts)))
+  (define props (car prop-dicts))
   (check string=?
          (dict-ref props 'label)
          label)
   (check eq?
-         proc-sym
-         proc-sym2)
+         (prop-dict-ref props 'name)
+         proc-sym)
   (check string=?
-         help-str
-         help-str2)
-  )
+         help-str2
+         help-str))
 
 ;===================;
 ;=== Compilation ===;

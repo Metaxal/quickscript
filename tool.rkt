@@ -97,9 +97,6 @@ It should then be very fast to load.
 
         (define frame this)
 
-        (define/private (prop-dict-ref props key)
-          (dict-ref props key (dict-ref props-default key)))
-
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
                                            this
@@ -141,7 +138,11 @@ It should then be very fast to load.
           (set! namespace-dict (make-hash)))
 
         ;; f: path?
-        (define/private (run-script fun file output-to persistent?)
+        (define/private (run-script props)
+          (define name         (prop-dict-ref props 'name))
+          (define fpath        (prop-dict-ref props 'filepath))
+          (define output-to    (prop-dict-ref props 'output-to))
+          (define persistent?  (prop-dict-ref props 'persistent?))
           ; For frame:text% :
           ;(define text (send frame get-editor))
           ; For DrRacket:
@@ -160,17 +161,17 @@ It should then be very fast to load.
           ; if not, we always create a new namespace.
           (define ns
             (if persistent?
-                (dict-ref! namespace-dict file make-script-namespace)
+                (dict-ref! namespace-dict fpath make-script-namespace)
                 (make-script-namespace)))
 
-          (define file-str (path->string file))
+          (define file-str (path->string fpath))
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
             (with-error-message-box
                 (format "Error in script file ~s:\n" file-str)
               
               ; See HelpDesk for "Manipulating namespaces"
-              (let ([f (parameterize ([current-namespace ns]) (dynamic-require file fun))]
+              (let ([f (parameterize ([current-namespace ns]) (dynamic-require fpath name))]
                     [kw-dict `((#:definitions   . ,(get-definitions-text))
                                (#:interactions  . ,(get-interactions-text))
                                (#:editor        . ,text)
@@ -225,60 +226,75 @@ It should then be very fast to load.
         (define/private (reload-scripts-menu)
           (time-info
            "Building script menu"
-          (set! menu-reload-count (add1 menu-reload-count))
-          (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
-          ;; remove all scripts items, after the persistent ones:
-          (time-info
-           "Deleting menu items"
-           (for ([item (list-tail (send scripts-menu get-items) 2)])
-             (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
-             (send item delete)))
-          
-          ;; Add script items.
-          ;; Create an empty namespace to load all the scripts (in the same namespace)
-          (parameterize ([current-namespace (make-base-empty-namespace)])
-            ;; For all scripts in the script directory.
-            (for ([f (in-list (user-script-files))])
-              (time-info
-               (string-append "Loading file " (path->string f))
-               ; catch problems and display them in a message-box
-               (with-error-message-box
-                (format "Error in script file ~s:\n" (path->string f))
-                
-                (define property-dicts (get-property-dicts f))
-                (for ([(fun props) (in-dict property-dicts)])
-                  (let*([label           (prop-dict-ref props 'label)]
-                        [menu-path       (prop-dict-ref props 'menu-path)]
-                        [shortcut        (prop-dict-ref props 'shortcut)]
-                        [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
-                                             (get-default-shortcut-prefix))]
-                        [help-string     (prop-dict-ref props 'help-string)]
-                        [output-to       (prop-dict-ref props 'output-to)]
-                        [persistent?     (prop-dict-ref props 'persistent?)]
-                        [os-types        (prop-dict-ref props 'os-types)]
-                        )
-                    (when (memq this-os-type os-types)
-                      ; Create the menu hierarchy if it doesn't exist.
-                      (define parent-menu
-                        (let loop ([menu-path menu-path] [parent scripts-menu])
-                          (if (empty? menu-path)
-                              parent
-                              (let ([menu (first menu-path)])
-                                (loop (rest menu-path)
-                                      (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
-                                                             (string=? (send m get-label) menu)))
-                                                 (send parent get-items))
-                                          (new menu% [parent parent] [label menu])))))))
-                      (new menu-item% [parent parent-menu]
-                           [label            label]
-                           [shortcut         shortcut]
-                           [shortcut-prefix  shortcut-prefix]
-                           [help-string      help-string]
-                           [callback         (λ (it ev) 
-                                               (run-script fun
-                                                           f
-                                                           output-to
-                                                           persistent?))]))))))))))
+           (set! menu-reload-count (add1 menu-reload-count))
+           (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
+           ;; remove all scripts items, after the default ones:
+           (time-info
+            "Deleting menu items"
+            (for ([item (list-tail (send scripts-menu get-items) 2)])
+              (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
+              (send item delete)))
+
+           (let ()
+             ;; Add script items.
+             ;; Create an empty namespace to load all the scripts (in the same namespace).
+             (define property-dicts
+               (parameterize ([current-namespace (make-base-empty-namespace)])
+                 ;; For all scripts in the script directory.
+                 (append-map
+                  (λ (f)
+                    (time-info
+                     (string-append "Loading file " (path->string f))
+                     ; Catch problems and display them in a message-box.
+                     (with-error-message-box
+                         (format "Error in script file ~s:\n" (path->string f))
+                       (define props-list (get-property-dicts f))
+                       ; Keep only the scripts that match the current os type.
+                       (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
+                               props-list))))
+                  (user-script-files))))
+             ; Sort the menu items lexicographically.
+             (set! property-dicts
+                   (sort property-dicts
+                         string<=?
+                         #:key (λ (props)
+                                 (define menu-path (prop-dict-ref props 'menu-path))
+                                 (string-downcase
+                                  (string-replace
+                                   (string-join
+                                    (append
+                                     (if (empty? menu-path)
+                                       '("/")
+                                       menu-path)
+                                     (list (prop-dict-ref props 'label)))
+                                    "/")
+                                   "&" "" #:all? #t)))
+                         #:cache-keys? #t))
+             (for ([props (in-list property-dicts)])
+               (let*([label           (prop-dict-ref props 'label)]
+                     [menu-path       (prop-dict-ref props 'menu-path)]
+                     [shortcut        (prop-dict-ref props 'shortcut)]
+                     [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
+                                          (get-default-shortcut-prefix))]
+                     [help-string     (prop-dict-ref props 'help-string)]
+                     )
+                 ; Create the menu hierarchy if it doesn't exist.
+                 (define parent-menu
+                   (let loop ([menu-path menu-path] [parent scripts-menu])
+                     (if (empty? menu-path)
+                       parent
+                       (let ([menu (first menu-path)])
+                         (loop (rest menu-path)
+                               (or (findf (λ (m) (and (is-a? m labelled-menu-item<%>)
+                                                      (string=? (send m get-label) menu)))
+                                          (send parent get-items))
+                                   (new menu% [parent parent] [label menu])))))))
+                 (new menu-item% [parent parent-menu]
+                      [label            label]
+                      [shortcut         shortcut]
+                      [shortcut-prefix  shortcut-prefix]
+                      [help-string      help-string]
+                      [callback         (λ (it ev) (run-script props))]))))))
 
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
@@ -294,10 +310,10 @@ It should then be very fast to load.
                   ("&Compile scripts and reload" . ,(λ () 
                                                       (compile-user-scripts (user-script-files))
                                                       (reload-scripts-menu)))
-                  ("&Unload persistent scripts" . ,(λ () (unload-persistent-scripts)))
-                  (separator                    . #f)
-                  ("&Help"                      . ,(λ () (open-help)))
-                  ("&Feedback/Bug report…"      . ,(λ () (bug-report)))
+                  ("&Unload persistent scripts"  . ,(λ () (unload-persistent-scripts)))
+                  (separator                     . #f)
+                  ("&Help"                       . ,(λ () (open-help)))
+                  ("&Feedback/Bug report…"       . ,(λ () (bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
