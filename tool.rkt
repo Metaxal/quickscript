@@ -228,15 +228,8 @@ It should then be very fast to load.
            "Building script menu"
            (set! menu-reload-count (add1 menu-reload-count))
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
-           ;; remove all scripts items, after the default ones:
-           (time-info
-            "Deleting menu items"
-            (for ([item (list-tail (send scripts-menu get-items) 2)])
-              (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
-              (send item delete)))
 
            (let ()
-             ;; Add script items.
              ;; Create an empty namespace to load all the scripts (in the same namespace).
              (define property-dicts
                (parameterize ([current-namespace (make-base-empty-namespace)])
@@ -253,7 +246,7 @@ It should then be very fast to load.
                        (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
                                props-list))))
                   (user-script-files))))
-             ; Sort the menu items lexicographically.
+             ;; Sort the menu items lexicographically.
              (set! property-dicts
                    (sort property-dicts
                          string<=?
@@ -270,6 +263,13 @@ It should then be very fast to load.
                                     "/")
                                    "&" "" #:all? #t)))
                          #:cache-keys? #t))
+             ;; remove all scripts items, after the default ones:
+             (time-info
+              "Deleting menu items"
+              (for ([item (list-tail (send scripts-menu get-items) 2)])
+                (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
+                (send item delete)))
+             ;; Add script items.
              (for ([props (in-list property-dicts)])
                (let*([label           (prop-dict-ref props 'label)]
                      [menu-path       (prop-dict-ref props 'menu-path)]
