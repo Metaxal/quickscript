@@ -298,6 +298,8 @@ There are some additional properties:
   @gui{Scripts|Manage scripts|Unload persistent scripts} menu item.
   In the previous example, this will reset the counter. Make sure to unload a persistent script
   after editing it.
+  @gui{Scripts|Manage scripts|Reload menu} and @gui{Scripts|Manage scripts|Compile scripts and reload}
+  also unload persistent scripts.
 
   @bold{Technical point:} The script's procedure is called @emph{outside} of the namespace that was
   used to @racket[dynamic-require] it, and inside DrRacket frame's namespace so as to have access

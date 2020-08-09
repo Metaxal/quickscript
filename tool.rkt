@@ -306,8 +306,11 @@ It should then be very fast to load.
                   (separator                     . #f)
                   ("&Library…"                   . ,(λ () (make-library-gui #:parent-frame this
                                                                             #:drracket-parent? #t)))
-                  ("&Reload menu"                . ,(λ () (reload-scripts-menu)))
-                  ("&Compile scripts and reload" . ,(λ () 
+                  ("&Reload menu"                . ,(λ ()
+                                                      (unload-persistent-scripts)
+                                                      (reload-scripts-menu)))
+                  ("&Compile scripts and reload" . ,(λ ()
+                                                      (unload-persistent-scripts)
                                                       (compile-user-scripts (user-script-files))
                                                       (reload-scripts-menu)))
                   ("&Unload persistent scripts"  . ,(λ () (unload-persistent-scripts)))
