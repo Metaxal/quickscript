@@ -1,5 +1,6 @@
 #lang at-exp racket/base
-(require racket/dict
+(require racket/contract
+         racket/dict
          racket/format
          racket/path
          compiler/compilation-path         
@@ -12,6 +13,7 @@
   (require rackunit))
 
 (define version-bytes (string->bytes/utf-8 (version)))
+(define vm-bytes (string->bytes/utf-8 (symbol->string (system-type 'vm))))
 
 (define-logger quickscript)
 
@@ -170,7 +172,8 @@
 ;=== Compilation ===;
 ;===================;
 
-(define (compile-user-scripts files)
+(define/contract (compile-user-scripts files)
+  (-> (listof path-string?) any)
   ; Docs say generates a compiled file in the "compiled" directory
   ; (thus not in the "compile d/errortrace" directory).
   (define my-compiler (compile-zos #f #:module? #t))
@@ -182,11 +185,15 @@
 ; https://github.com/racket/racket/blob/master/racket/src/expander/compile/read-linklet.rkt#L9
 ; and 'get-cached-compiled':
 ; https://github.com/racket/racket/blob/master/racket/src/expander/run/cache.rkt#L76
-(define (zo-version source-file)
+(define/contract (zo-version source-or-zo-file)
+  (-> path-string? (or/c #f (list/c bytes? bytes?)))
   ; We (only) use "compiled" as modes, because by default DrRacket would place zos in
   ; compiled/errortrace, but the compile-zos used in compile-user-scripts places them in
   ; "compiled".
-  (define zo-file (get-compilation-bytecode-file source-file #:modes '("compiled")))
+  (define zo-file
+    (if (path-has-extension? source-or-zo-file #".zo")
+      source-or-zo-file
+      (get-compilation-bytecode-file source-or-zo-file #:modes '("compiled"))))
   (and (file-exists? zo-file)
        (parameterize ([read-accept-compiled #t])
          (call-with-input-file*
@@ -194,9 +201,14 @@
            (lambda (in)
              (read-bytes 2 in) ; consume "#~"
              (define vers-len (min 63 (read-byte in)))
-             (read-bytes vers-len in))))))
+             (define vers (read-bytes vers-len in))
+             (define vm-len (min 63 (read-byte in)))
+             (define vm (read-bytes vm-len in))
+             (list vers vm))))))
 
 ;; Is the zo file for the given source file having the same version as
 ;; the current (dr)racket one?
-(define (compiled-for-current-version? source-file)
-  (equal? version-bytes (zo-version source-file)))
+(define/contract (compiled-for-current-version? source-file)
+  (-> path-string? boolean?)
+  (equal? (list version-bytes vm-bytes)
+          (zo-version source-file)))
