@@ -239,12 +239,16 @@ It should then be very fast to load.
                     (time-info
                      (string-append "Loading file " (path->string f))
                      ; Catch problems and display them in a message-box.
-                     (with-error-message-box
+                     (let ((maybe-props
+                       (with-error-message-box
                          (format "Error in script file ~s:\n" (path->string f))
                        (define props-list (get-property-dicts f))
                        ; Keep only the scripts that match the current os type.
                        (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
                                props-list))))
+                       (if (list? maybe-props)
+                         maybe-props
+                         '()))))
                   (user-script-files))))
              ;; Sort the menu items lexicographically.
              (set! property-dicts
