@@ -119,14 +119,14 @@
 
  2) Create a new 'shadow' script file
  @(path->string new-script-path)
- that has the same behaviour as the original script file but can be modified
+ that has the same behaviour as the original script file but can be modified @;
  to change its properties;
  @(if drracket-parent?
       "\n3) Open the shadow script file for edition in DrRacket."
       "")
    
- This allows the original script file to be updated (e.g., if part of a package)
- while allowing the user (you) to change its properties without changing the
+ This allows the original script file to be updated (e.g., if part of a package) @;
+ while allowing the user (you) to change its properties without changing the @;
  original file directly.
 
  Do you want to proceed?
