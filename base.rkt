@@ -172,6 +172,11 @@
 ;=== Compilation ===;
 ;===================;
 
+;; TODO: Use `compile-directory-zos` instead, with the directories of the
+;; library and the exclusion files.
+;; This will allow to recompile the dependencies (as for shadow scripts)
+;; while avoiding compiling deactivated scripts.
+
 (define/contract (compile-user-scripts files)
   (-> (listof path-string?) any)
   ; Docs say generates a compiled file in the "compiled" directory

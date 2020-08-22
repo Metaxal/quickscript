@@ -38,9 +38,15 @@ It should then be very fast to load.
                (string-append str " " (exn-message e))
                #f '(stop ok)))
 
-(define-syntax-rule (with-error-message-box str body ...)
-  (with-handlers ([exn? (λ (e) (error-message-box str e))])
-    body ...))
+(define-syntax with-error-message-box
+  (syntax-rules ()
+    [(_ str #:error-value err-val body ...)
+     (with-handlers ([exn? (λ (e)
+                             (error-message-box str e)
+                             err-val)])
+       body ...)]
+    [(_ str body ...)
+     (with-error-message-box str #:error-value (void) body ...)]))
 
 ;; Recompiles all (enabled or disabled, user and third-party) scripts that are not yet compiled
 ;; for the current version.
@@ -169,6 +175,7 @@ It should then be very fast to load.
           (define str-out
             (with-error-message-box
                 (format "Error in script file ~s:\n" file-str)
+              #:error-value #f
               
               ; See HelpDesk for "Manipulating namespaces"
               (let ([f (parameterize ([current-namespace ns]) (dynamic-require fpath name))]
@@ -241,6 +248,7 @@ It should then be very fast to load.
                      ; Catch problems and display them in a message-box.
                      (with-error-message-box
                          (format "Error in script file ~s:\n" (path->string f))
+                       #:error-value '() ; skip this file
                        (define props-list (get-property-dicts f))
                        ; Keep only the scripts that match the current os type.
                        (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
@@ -326,7 +334,7 @@ It should then be very fast to load.
 
         ; Silently recompile for the new version if necessary, at the start up of DrRacket.
         (with-error-message-box
-         "Error while recompiling all from previous version:\n"
+            "Error while recompiling all from previous version:\n"
          (recompile-all-of-previous-version))
         (reload-scripts-menu)
         ))
