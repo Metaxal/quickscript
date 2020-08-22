@@ -174,7 +174,7 @@ It should then be very fast to load.
           (define ed-file (send (get-definitions-text) get-filename))
           (define str-out
             (with-error-message-box
-                (format "Error in script file ~s:\n" file-str)
+                (format "Run: Error in script file ~s:\n" file-str)
               #:error-value #f
               
               ; See HelpDesk for "Manipulating namespaces"
@@ -247,7 +247,7 @@ It should then be very fast to load.
                      (string-append "Loading file " (path->string f))
                      ; Catch problems and display them in a message-box.
                      (with-error-message-box
-                         (format "Error in script file ~s:\n" (path->string f))
+                         (format "Reload: Error in script file ~s:\n" (path->string f))
                        #:error-value '() ; skip this file
                        (define props-list (get-property-dicts f))
                        ; Keep only the scripts that match the current os type.
