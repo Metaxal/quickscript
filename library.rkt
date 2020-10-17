@@ -29,8 +29,11 @@
 (define (directories lib)
   (dict-keys lib))
 
-(define (exclusions lib dir)
-  (dict-ref lib (path-string->string dir) '()))
+(define (exclusions lib dir #:build? [build? #f])
+  (define exs (dict-ref lib (path-string->string dir) '()))
+  (if build?
+    (map (λ (x) (build-path dir x)) exs)
+    exs))
 
 ;; Returns the list of script files in the given directory.
 ;; If exclude is not #f, then only such files that are not listed as exclusions
@@ -93,9 +96,9 @@
                        . ->* . void?)]
  [directories         (library?
                        . -> . (listof string?))]
- [exclusions          (library?
-                       path-string?
-                       . -> . (listof string?))]
+ [exclusions          ([library? path-string?]
+                       [#:build? boolean?]
+                       . ->* . (listof path-string?))]
  [files               ([library?]
                        [path-string? #:exclude? boolean?]
                        . ->* . (listof string?))]

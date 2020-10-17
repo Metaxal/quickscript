@@ -1,6 +1,7 @@
 #lang at-exp racket/base
 (require
   (for-syntax racket/base) ; for help menu
+  compiler/compiler
   drracket/tool ; necessary to build a drracket plugin
   framework ; for preferences (too heavy a package?)
   help/search
@@ -8,6 +9,7 @@
   racket/class
   racket/dict
   racket/file
+  racket/port
   racket/gui/base
   racket/list
   racket/path ; for filename-extension
@@ -48,32 +50,20 @@ It should then be very fast to load.
     [(_ str body ...)
      (with-error-message-box str #:error-value (void) body ...)]))
 
-;; Recompiles all (enabled or disabled, user and third-party) scripts that are not yet compiled
-;; for the current version.
-;; This is to prevent Quickscript trying to load from compiled after an upgrade of
-;; the Racket system, and displaying one error message for each script.
-;; It is important to recompile disabled scripts too, because these may still be
-;; dependencies of shadowing scripts.
-;; Caveat: Dependencies are not compiled automatically. Hence if a script depends on a collection
-;; (package) then the collection needs to be compiled with the correct version, otherwise
-;; an error will be raised on DrRacket startup.
-;; How to test this works:
-;; - Create a new script or use an old one that is *not* deactivated in the library
-;; - Compile it with another version of racket (install locally, not unix style,
-;; then use its old raco to setup quickscript and make the script)
-;; - In DrRacket, use the quickscript "Compiled version" to make sure it has the old version.
-;; - Exit DrRacket.
-;; - Use the new version of raco to setup (again) quickscript
-;;   If installing a new version of racket, it may be necessary to run:
-;;   $ raco pkg update --link <path-to-local-quickscript>
-;; - Restart DrRacket, the script should be compiled silently with the correct version,
-;;   and no error message should be displayed.
-;; - In the library, check that a quickscript-extra shadowed script does not raise an error
-;;   when clicking on it.
-(define (recompile-all-of-previous-version)
-  (compile-user-scripts
-   (filter (λ (f) (not (compiled-for-current-version? f)))
-           (user-script-files #:exclude? #f))))
+
+;; How to test:
+;; 1. install an old version of Racket (easier with a nightly build) in a local dir
+;; 2. raco-OLD make ~/.racket/quickscript/user-scripts/*.rkt
+;; 3. Close and open DrRacket (or hit Scripts|Recompile)
+(define (compile-library)
+  (define lib (lib:load library-file))
+  (for ([dir (in-list (lib:directories lib))])
+    ;; warning: This outputs compilation info, so may open a console on Windows.
+    ;; That's why we gobble the output
+    (define str
+      (with-output-to-string
+        (λ () (compile-directory-zos dir #f #:skip-paths (lib:exclusions lib dir #:build? #t)))))
+    str))
 
 (define-namespace-anchor a)
 
@@ -319,7 +309,7 @@ It should then be very fast to load.
                                                       (reload-scripts-menu)))
                   ("&Compile scripts and reload" . ,(λ ()
                                                       (unload-persistent-scripts)
-                                                      (compile-user-scripts (user-script-files))
+                                                      (compile-library)
                                                       (reload-scripts-menu)))
                   ("&Unload persistent scripts"  . ,(λ () (unload-persistent-scripts)))
                   (separator                     . #f)
@@ -335,7 +325,7 @@ It should then be very fast to load.
         ; Silently recompile for the new version if necessary, at the start up of DrRacket.
         (with-error-message-box
             "Error while recompiling all from previous version:\n"
-         (recompile-all-of-previous-version))
+         (compile-library))
         (reload-scripts-menu)
         ))
 
