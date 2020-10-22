@@ -32,6 +32,11 @@ It should then be very fast to load.
 
 |#
 
+;; Make sure the directory containing the script exists.
+;; This is important as it is assumed to exist afterwards.
+(make-directory* user-script-dir)
+
+
 (define (user-script-files #:exclude? [exclude? #t])
   (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
@@ -58,12 +63,11 @@ It should then be very fast to load.
 (define (compile-library)
   (define lib (lib:load library-file))
   (for ([dir (in-list (lib:directories lib))])
-    ;; warning: This outputs compilation info, so may open a console on Windows.
-    ;; That's why we gobble the output
-    (define str
+    (when (directory-exists? dir)
+      ;; warning: This outputs compilation info, so may open a console on Windows.
+      ;; That's why we gobble the output
       (with-output-to-string
-        (λ () (compile-directory-zos dir #f #:skip-paths (lib:exclusions lib dir #:build? #t)))))
-    str))
+        (λ () (compile-directory-zos dir #f #:skip-paths (lib:exclusions lib dir #:build? #t)))))))
 
 (define-namespace-anchor a)
 
