@@ -8,7 +8,7 @@ The [slides from RacketCon 2018](https://github.com/Metaxal/quickscript/blob/mas
 
 ## 1. Installation
 
-Quickscript (but not yet quickscript-extra) now comes bundled with DrRacket.
+Quickscript comes bundled with DrRacket.
 
 You may want to install [additional scripts](https://github.com/Metaxal/quickscript-extra), but Quickscript can also be used alone.
 
@@ -18,7 +18,25 @@ Have a look at the `Scripts` menu in DrRacket.
 
 See the [docs](https://www.cs.utah.edu/plt/snapshots/current/doc/quickscript/index.html) for more information.
 
-## 3. History
+## 3. Developing Quickscript
+
+If you want to modify how Quickscript works, here's how to replace the bundled collection with the development one:
+
+1. Fork [quickscript on github](https://github.com/Metaxal/quickscript)
+2. In some local folder on your computer, clone from the forked repo:
+```shell
+git clone https://github.com/<your-github-username>/quickscript.git
+```
+3. Without changing directory, 
+```shell
+raco pkg update --link quickscript
+```
+This may require `sudo` if it was used when installing racket.
+
+Now the quickscript collection refers to the cloned repository.
+
+
+## 4. History
 
 Quickscript is the successor to [Script Plugin](https://github.com/Metaxal/script-plugin), with some differences:
 - Each Quickscript script is a **single file** (instead of 2), which makes it easier to share and modify.
