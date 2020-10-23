@@ -32,11 +32,6 @@ It should then be very fast to load.
 
 |#
 
-;; Make sure the directory containing the script exists.
-;; This is important as it is assumed to exist afterwards.
-(make-directory* user-script-dir)
-
-
 (define (user-script-files #:exclude? [exclude? #t])
   (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
