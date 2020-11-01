@@ -17,8 +17,10 @@
 
 (define-logger quickscript)
 
+;; TODO: What if (find-system-path 'pref-dir) does not exist?
 (define quickscript-dir
-  (build-path (find-system-path 'pref-dir) "quickscript"))
+  (or (getenv "PLTQUICKSCRIPTDIR")
+      (build-path (find-system-path 'pref-dir) "quickscript")))
 
 (define library-file
   (build-path quickscript-dir "library.rktd"))
@@ -172,8 +174,7 @@
 ;=== Compilation ===;
 ;===================;
 
-;;; OBSOLETE
-
+;; OBSOLETE
 (define/contract (compile-user-scripts files)
   (-> (listof path-string?) any)
   ; Docs say generates a compiled file in the "compiled" directory
@@ -182,6 +183,9 @@
   (time-info
    "Compiling user scripts"
    (my-compiler files 'auto)))
+
+(define (zo-file src-file)
+  (get-compilation-bytecode-file src-file #:modes '("compiled")))
 
 ; Based on 'read-linklet-bundle-or-directory':
 ; https://github.com/racket/racket/blob/master/racket/src/expander/compile/read-linklet.rkt#L9
@@ -192,14 +196,14 @@
   ; We (only) use "compiled" as modes, because by default DrRacket would place zos in
   ; compiled/errortrace, but the compile-zos used in compile-user-scripts places them in
   ; "compiled".
-  (define zo-file
+  (define zof
     (if (path-has-extension? source-or-zo-file #".zo")
       source-or-zo-file
-      (get-compilation-bytecode-file source-or-zo-file #:modes '("compiled"))))
-  (and (file-exists? zo-file)
+      (zo-file source-or-zo-file)))
+  (and (file-exists? zof)
        (parameterize ([read-accept-compiled #t])
          (call-with-input-file*
-             zo-file
+             zof
            (lambda (in)
              (read-bytes 2 in) ; consume "#~"
              (define vers-len (min 63 (read-byte in)))
@@ -210,7 +214,11 @@
 
 ;; Is the zo file for the given source file having the same version as
 ;; the current (dr)racket one?
+;; Returns #t also if source-file is not compiled (in which case it can still be
+;; run by racket)
 (define/contract (compiled-for-current-version? source-file)
   (-> path-string? boolean?)
-  (equal? (list version-bytes vm-bytes)
-          (zo-version source-file)))
+  (define zov (zo-version source-file))
+  (or (not zov) ; no zo file
+      (equal? (list version-bytes vm-bytes)
+              zov)))

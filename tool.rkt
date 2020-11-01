@@ -50,19 +50,28 @@ It should then be very fast to load.
     [(_ str body ...)
      (with-error-message-box str #:error-value (void) body ...)]))
 
-
-;; How to test:
-;; 1. install an old version of Racket (easier with a nightly build) in a local dir
-;; 2. raco-OLD make ~/.racket/quickscript/user-scripts/*.rkt
-;; 3. Close and open DrRacket (or hit Scripts|Recompile)
 (define (compile-library)
+  ; Not compiled properly. Remove compiled files that are for old versions?
+  ; only for compiled scripts? (or don't remove for disabled scripts)
   (define lib (lib:load library-file))
   (for ([dir (in-list (lib:directories lib))])
     (when (directory-exists? dir)
+      (define excl (lib:exclusions lib dir #:build? #t))
+      (for ([f (in-list (directory-list dir #:build? #t))])
+        (when (and (path-has-extension? f #".rkt")
+                   (file-exists? f)
+                   (not (member f excl))
+                   (not (compiled-for-current-version? f)))
+          (define zof (zo-file f))
+          #;(printf "~a not compiled for current version\n  zo: ~a\n" (path->string f) (path->string zof))
+          (when (file-exists? zof)
+            #;(println "deleting zo file")
+            ; TODO: delete dep file too?
+            (delete-file zof))))
       ;; warning: This outputs compilation info, so may open a console on Windows.
       ;; That's why we gobble the output
       (with-output-to-string
-        (λ () (compile-directory-zos dir #f #:skip-paths (lib:exclusions lib dir #:build? #t)))))))
+        (λ () (compile-directory-zos dir #f #:skip-paths excl))))))
 
 (define-namespace-anchor a)
 
