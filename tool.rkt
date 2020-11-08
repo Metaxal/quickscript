@@ -1,30 +1,26 @@
 #lang at-exp racket/base
 (require
   (for-syntax racket/base) ; for help menu
-  compiler/compiler
   drracket/tool ; necessary to build a drracket plugin
+  errortrace/errortrace-lib
   framework ; for preferences (too heavy a package?)
   help/search
   net/sendurl ; for the help menu
   racket/class
   racket/dict
   racket/file
-  racket/port
   racket/gui/base
   racket/list
-  racket/path ; for filename-extension
-  racket/runtime-path ; for the help menu
   racket/string
   racket/unit
   "base.rkt"
   (prefix-in lib: "library.rkt")
-  "library-gui.rkt"
-  )
+  "library-gui.rkt")
 (provide tool@)
 
 #|
 To debug:
-$ export PLTSTEDDR=debug@quickscript && drracket&
+$ export PLTSTDERR=debug@quickscript && drracket&
 
 If the menu takes a long time to load, it's because the scripts are not compiled.
 Click on Scripts|Manage scripts|Compile user scripts.
@@ -36,42 +32,30 @@ It should then be very fast to load.
   (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
 (define (error-message-box str e)
+  (define sp (open-output-string))
+  (parameterize ([current-error-port sp])
+    (errortrace-error-display-handler (exn-message e) e))
+
   (message-box "Quickscript caught an exception"
-               (string-append str " " (exn-message e))
+               (string-append str " " (get-output-string sp))
                #f '(stop ok)))
 
 (define-syntax with-error-message-box
   (syntax-rules ()
     [(_ str #:error-value err-val body ...)
-     (with-handlers ([exn? (λ (e)
-                             (error-message-box str e)
-                             err-val)])
+     (with-handlers* ([(λ (e) (and (exn? e) (not (exn:break? e))))
+                       (λ (e)
+                         (error-message-box str e)
+                         err-val)])
        body ...)]
     [(_ str body ...)
      (with-error-message-box str #:error-value (void) body ...)]))
 
 (define (compile-library)
-  ; Not compiled properly. Remove compiled files that are for old versions?
-  ; only for compiled scripts? (or don't remove for disabled scripts)
-  (define lib (lib:load library-file))
-  (for ([dir (in-list (lib:directories lib))])
-    (when (directory-exists? dir)
-      (define excl (lib:exclusions lib dir #:build? #t))
-      (for ([f (in-list (directory-list dir #:build? #t))])
-        (when (and (path-has-extension? f #".rkt")
-                   (file-exists? f)
-                   (not (member f excl))
-                   (not (compiled-for-current-version? f)))
-          (define zof (zo-file f))
-          #;(printf "~a not compiled for current version\n  zo: ~a\n" (path->string f) (path->string zof))
-          (when (file-exists? zof)
-            #;(println "deleting zo file")
-            ; TODO: delete dep file too?
-            (delete-file zof))))
-      ;; warning: This outputs compilation info, so may open a console on Windows.
-      ;; That's why we gobble the output
-      (with-output-to-string
-        (λ () (compile-directory-zos dir #f #:skip-paths excl))))))
+  (with-error-message-box
+    "Error while compiling scripts:\n"
+  (time-info "Recompiling library"
+             (compile-user-scripts (user-script-files)))))
 
 (define-namespace-anchor a)
 
@@ -302,6 +286,10 @@ It should then be very fast to load.
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
+        ; Silently recompile for the new version if necessary, at the start up of DrRacket.
+        ; This must be done before building the menus.
+        (compile-library)
+
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
@@ -330,10 +318,6 @@ It should then be very fast to load.
                    [callback (λ _ (cbk))])))
         (new separator-menu-item% [parent scripts-menu])
 
-        ; Silently recompile for the new version if necessary, at the start up of DrRacket.
-        (with-error-message-box
-            "Error while recompiling all from previous version:\n"
-         (compile-library))
         (reload-scripts-menu)
         ))
 

@@ -4,8 +4,8 @@
          racket/format
          racket/path
          compiler/compilation-path         
-         compiler/compiler
-         )
+         compiler/cm
+         errortrace/errortrace-lib)
 
 (provide (all-defined-out))
 
@@ -174,51 +174,29 @@
 ;=== Compilation ===;
 ;===================;
 
-;; OBSOLETE
 (define/contract (compile-user-scripts files)
   (-> (listof path-string?) any)
-  ; Docs say generates a compiled file in the "compiled" directory
-  ; (thus not in the "compile d/errortrace" directory).
-  (define my-compiler (compile-zos #f #:module? #t))
-  (time-info
-   "Compiling user scripts"
-   (my-compiler files 'auto)))
+
+  ; Asynchronous?
+  #;(parameterize ([current-namespace (make-base-empty-namespace)])
+    (parallel-compile-files files))
+  
+  ; Synchronous version:
+  (define err-str-port (open-output-string))
+  (parameterize ([current-error-port err-str-port]
+                 [current-namespace (make-base-empty-namespace)])
+    (define cmc (make-caching-managed-compile-zo))
+    (for ([f (in-list files)])
+      (with-handlers* ([exn:fail?
+                        (λ (e) (errortrace-error-display-handler (exn-message e) e))])
+        (time-info (format "Compiling ~a" (path->string f))
+                   (cmc f)))))
+  (define err-str (get-output-string err-str-port))
+  (log-quickscript-info err-str)
+  ; Raise a single exception will all the error messages
+  (unless (string=? err-str "")
+    ; TODO: The context of this exception is now part of the error message. Remove it.
+    (error err-str)))
 
 (define (zo-file src-file)
   (get-compilation-bytecode-file src-file #:modes '("compiled")))
-
-; Based on 'read-linklet-bundle-or-directory':
-; https://github.com/racket/racket/blob/master/racket/src/expander/compile/read-linklet.rkt#L9
-; and 'get-cached-compiled':
-; https://github.com/racket/racket/blob/master/racket/src/expander/run/cache.rkt#L76
-(define/contract (zo-version source-or-zo-file)
-  (-> path-string? (or/c #f (list/c bytes? bytes?)))
-  ; We (only) use "compiled" as modes, because by default DrRacket would place zos in
-  ; compiled/errortrace, but the compile-zos used in compile-user-scripts places them in
-  ; "compiled".
-  (define zof
-    (if (path-has-extension? source-or-zo-file #".zo")
-      source-or-zo-file
-      (zo-file source-or-zo-file)))
-  (and (file-exists? zof)
-       (parameterize ([read-accept-compiled #t])
-         (call-with-input-file*
-             zof
-           (lambda (in)
-             (read-bytes 2 in) ; consume "#~"
-             (define vers-len (min 63 (read-byte in)))
-             (define vers (read-bytes vers-len in))
-             (define vm-len (min 63 (read-byte in)))
-             (define vm (read-bytes vm-len in))
-             (list vers vm))))))
-
-;; Is the zo file for the given source file having the same version as
-;; the current (dr)racket one?
-;; Returns #t also if source-file is not compiled (in which case it can still be
-;; run by racket)
-(define/contract (compiled-for-current-version? source-file)
-  (-> path-string? boolean?)
-  (define zov (zo-version source-file))
-  (or (not zov) ; no zo file
-      (equal? (list version-bytes vm-bytes)
-              zov)))
