@@ -1,7 +1,8 @@
 #lang info
 
 (define deps
-  '("base"
+  '("errortrace-lib"
+    "base"
     "drracket-plugin-lib"
     "gui-lib"
     "net-lib"
