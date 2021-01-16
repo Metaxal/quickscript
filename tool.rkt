@@ -160,13 +160,16 @@ It should then be very fast to load.
               #:error-value #f
               
               ; See HelpDesk for "Manipulating namespaces"
-              (let ([f (parameterize ([current-namespace ns]) (dynamic-require fpath name))]
+              (let ([f (parameterize ([current-namespace ns])
+                         ; Ensure the script is compiled for the correct version of Racket
+                         (compile-user-script fpath)
+                         (dynamic-require fpath name))]
                     [kw-dict `((#:definitions   . ,(get-definitions-text))
                                (#:interactions  . ,(get-interactions-text))
                                (#:editor        . ,text)
                                (#:file          . ,ed-file)
                                (#:frame         . ,this))])
-                ;; f is evaluated *outside* the created namespace so as to make
+                ;; f is applied *outside* the created namespace so as to make
                 ;; all features of drracket's frame available.
                 ;; If it were evaluated inside ns, (send fr open-in-new-tab <some-file>)
                 ;; wouldn't work.
