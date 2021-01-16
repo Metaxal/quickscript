@@ -10,7 +10,7 @@ The [slides from RacketCon 2018](https://github.com/Metaxal/quickscript/blob/mas
 
 Quickscript comes bundled with DrRacket.
 
-You may want to install [additional scripts](https://github.com/Metaxal/quickscript-extra), but Quickscript can also be used alone.
+You may want to install [additional scripts](https://github.com/Metaxal/quickscript-extra) (also [here](https://github.com/racket/racket/wiki/Quickscript-Scripts-for-DrRacket)), but Quickscript can also be used alone.
 
 ## 2. Usage
 
