@@ -120,6 +120,9 @@
 ;; be created with (make-base-empty-namespace).
 ;; script-filename : path-string?
 (define (get-property-dicts script-filepath)
+  ; Ensure the script is compiled for the correct version of Racket
+  (compile-user-script script-filepath)
+  
   (define the-submod (make-submod-path script-filepath))
   (dynamic-require the-submod #f)
   (define-values (vars syntaxes) (module->exports the-submod))
@@ -174,6 +177,14 @@
 ;=== Compilation ===;
 ;===================;
 
+(define/contract (compile-user-script file)
+  (-> path-string? any)
+
+  ;; Simple wrapper for now, but may be specialized for efficiency later.
+  (void)
+  ; For some reason, this makes the tests hang...
+  #;(compile-user-script (list file)))
+
 (define/contract (compile-user-scripts files)
   (-> (listof path-string?) any)
 
@@ -193,7 +204,7 @@
                    (cmc f)))))
   (define err-str (get-output-string err-str-port))
   (log-quickscript-info err-str)
-  ; Raise a single exception will all the error messages
+  ; Raise a single exception with all the error messages
   (unless (string=? err-str "")
     ; TODO: The context of this exception is now part of the error message. Remove it.
     (error err-str)))
