@@ -68,8 +68,7 @@
 ;;; To see an actual output
 (module+ main
   (require syntax/modresolve
-           racket/path
-           rackunit)
+           racket/path)
   ; don't bother if the module does not exist.
   (with-handlers ([exn:fail:filesystem:missing-module? void])
     (define qs-path (resolve-module-path 'quickscript-extra))
