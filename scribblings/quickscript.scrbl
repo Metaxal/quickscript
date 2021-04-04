@@ -38,23 +38,24 @@ like DrRacket's frame and the definition or interaction editor.
 
 Quickscript is installed automatically with DrRacket, so you don't need to do anything.
 
-@subsection{Quickscript Extra}
+@subsection{Installing scripts: Quickscript Extra}
 
-You can use Quickscript on its own, but the Quickscript Extra package has a wide range of useful scripts as well as some 
+You can use Quickscript on its own, but the
+@hyperlink["https://pkgs.racket-lang.org/package/quickscript-extra"]{Quickscript Extra}
+package has a wide range of useful scripts as well as some 
 example scripts intended for customisation by the user.
 
 To install it, either look for @tt{quickscript-extra} in the DrRacket menu @gui{File|Package Manager},
 or run the raco command:
 @commandline{raco pkg install quickscript-extra}
 
-To activate you will need to register the new list of scripts in quickscript either by evaluating in DrRacket:
-@commandline{(require quickscript-extra/register)}
-
-or on the command line with
-
-@commandline{$ racket -l quickscript-extra/register}
-
 Then click on @gui{Scripts|Manage scripts|Compile scripts and reload}. (There is no need to restart DrRacket.)
+
+@subsection{Installing scripts: More scripts}
+
+More scripts can be found on the
+@hyperlink["https://github.com/racket/racket/wiki/Quickscript-Scripts-for-DrRacket"]{Racket wiki}---you
+can add your own scripts there too if you think they may be useful to others.
 
 @section{Make your own script: First simple example}
 
