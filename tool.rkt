@@ -51,16 +51,27 @@ It should then be very fast to load.
     [(_ str body ...)
      (with-error-message-box str #:error-value (void) body ...)]))
 
-(define (compile-library)
+(define (compile-library #:wait-frame? [wait-frame? #true])
+  (define (with-wait-frame thunk)
+    (define fr #false)
+    (dynamic-wind
+     (λ ()
+       (set! fr (new frame% [parent #f] [label "Recompiling quickscripts…"] [width 200] [height 50]))
+       (void (new message% [parent fr] [label "Recompiling quickscripts, please wait…"]))
+       (send fr reflow-container)
+       (send fr show #true))
+     thunk
+     (λ () (send fr show #false))))
+
+  (define (recompile)
+    (time-info "Recompiling library"
+               (compile-user-scripts (user-script-files))))
+  
   (with-error-message-box
     "Error while compiling scripts:\n"
-    (define fr (new frame% [parent #f] [label "Recompiling quickscripts…"] [width 200] [height 50]))
-    (void (new message% [parent fr] [label "Recompiling quickscripts, please wait…"]))
-    (send fr reflow-container)
-    (send fr show #true)
-    (time-info "Recompiling library"
-               (compile-user-scripts (user-script-files)))
-    (send fr show #false)))
+    (if wait-frame?
+      (with-wait-frame recompile)
+      (recompile))))
 
 (define-namespace-anchor a)
 
@@ -294,10 +305,6 @@ It should then be very fast to load.
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
-        ; Silently recompile for the new version if necessary, at the start up of DrRacket.
-        ; This must be done before building the menus.
-        (compile-library)
-
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
@@ -329,8 +336,16 @@ It should then be very fast to load.
         (reload-scripts-menu)
         ))
 
+    ; If an exception is raised during these two phases, DrRacket displays 
+    ; the error in a message box and deactivates the plugin before continuing. 
     (define (phase1) (void))
     (define (phase2) (void))
+
+    ; Silently recompile for the new version if necessary, at the start up of DrRacket.
+    ; This must be done before building the menus.
+    ; The wait-frame is disabled because the splash screen already conveys the same
+    ; meaning.
+    (compile-library #:wait-frame? #false)
 
     (drracket:get/extend:extend-unit-frame script-menu-mixin)
 
