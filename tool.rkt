@@ -54,13 +54,8 @@ It should then be very fast to load.
 (define (compile-library)
   (with-error-message-box
     "Error while compiling scripts:\n"
-    (define fr (new frame% [parent #f] [label "Recompiling quickscripts…"] [width 200] [height 50]))
-    (void (new message% [parent fr] [label "Recompiling quickscripts, please wait…"]))
-    (send fr reflow-container)
-    (send fr show #true)
-    (time-info "Recompiling library"
-               (compile-user-scripts (user-script-files)))
-    (send fr show #false)))
+  (time-info "Recompiling library"
+             (compile-user-scripts (user-script-files)))))
 
 (define-namespace-anchor a)
 
