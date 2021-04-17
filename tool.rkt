@@ -14,6 +14,7 @@
   racket/string
   racket/unit
   "base.rkt"
+  "exn-gobbler.rkt"
   (prefix-in lib: "library.rkt")
   "library-gui.rkt")
 (provide tool@)
@@ -51,27 +52,32 @@ It should then be very fast to load.
     [(_ str body ...)
      (with-error-message-box str #:error-value (void) body ...)]))
 
-(define (compile-library #:wait-frame? [wait-frame? #true])
-  (define (with-wait-frame thunk)
-    (define fr #false)
+;; Shows a message box with the string of the exn-gobbler, if not empty.
+(define (exn-gobbler-message-box gb title)
+  (unless (exn-gobbler-empty? gb)
+    (message-box title
+                 (exn-gobbler->string gb)
+                 #f
+                 '(caution ok))))
+
+;; -> exn-gobbler?
+(define (compile-library)
+  (time-info "Recompiling library"
+               (compile-user-scripts (user-script-files))))
+
+;; -> void?
+(define (compile-library/frame)
+  (define fr #false)
     (dynamic-wind
      (λ ()
        (set! fr (new frame% [parent #f] [label "Recompiling quickscripts…"] [width 200] [height 50]))
        (void (new message% [parent fr] [label "Recompiling quickscripts, please wait…"]))
        (send fr reflow-container)
        (send fr show #true))
-     thunk
+     (λ ()
+       (define gb (compile-library))
+       (exn-gobbler-message-box gb "Quickscript: Error during compilation"))
      (λ () (send fr show #false))))
-
-  (define (recompile)
-    (time-info "Recompiling library"
-               (compile-user-scripts (user-script-files))))
-  
-  (with-error-message-box
-    "Error while compiling scripts:\n"
-    (if wait-frame?
-      (with-wait-frame recompile)
-      (recompile))))
 
 (define-namespace-anchor a)
 
@@ -238,6 +244,7 @@ It should then be very fast to load.
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
            (let ()
+             (define gb (make-exn-gobbler "Loading Scripts menu"))
              ;; Create an empty namespace to load all the scripts (in the same namespace).
              (define property-dicts
                (parameterize ([current-namespace (make-base-empty-namespace)])
@@ -246,15 +253,16 @@ It should then be very fast to load.
                   (λ (f)
                     (time-info
                      (string-append "Loading file " (path->string f))
-                     ; Catch problems and display them in a message-box.
-                     (with-error-message-box
-                         (format "Reload: Error in script file ~s:\n" (path->string f))
-                       #:error-value '() ; skip this file
+                     (with-handlers* ([exn:fail?
+                                       (λ (e)
+                                         (gobble gb e (format "Script file ~s:" (path->string f)))
+                                         '())])
                        (define props-list (get-property-dicts f))
                        ; Keep only the scripts that match the current os type.
                        (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
                                props-list))))
                   (user-script-files))))
+             (exn-gobbler-message-box gb "Quickscript: Errors while loading script properties")
              ;; Sort the menu items lexicographically.
              (set! property-dicts
                    (sort property-dicts
@@ -305,6 +313,9 @@ It should then be very fast to load.
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
+        ;; Show the error messages that happened during the initial compilation.
+        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
+
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
@@ -320,7 +331,7 @@ It should then be very fast to load.
                                                       (reload-scripts-menu)))
                   ("&Compile scripts and reload" . ,(λ ()
                                                       (unload-persistent-scripts)
-                                                      (compile-library)
+                                                      (compile-library/frame)
                                                       (reload-scripts-menu)))
                   ("&Unload persistent scripts"  . ,(λ () (unload-persistent-scripts)))
                   (separator                     . #f)
@@ -343,9 +354,9 @@ It should then be very fast to load.
 
     ; Silently recompile for the new version if necessary, at the start up of DrRacket.
     ; This must be done before building the menus.
-    ; The wait-frame is disabled because the splash screen already conveys the same
-    ; meaning.
-    (compile-library #:wait-frame? #false)
+    ; The compilation is done at this point so that the splash screen doesn't disappear,
+    ; but the message box will be shown after the DrRacket frame is shown up.    
+    (define init-compile-exn-gobbler (compile-library))
 
     (drracket:get/extend:extend-unit-frame script-menu-mixin)
 
