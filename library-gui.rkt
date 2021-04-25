@@ -172,7 +172,10 @@
     (define (set-msg-help-string dir file)
       (when (and dir file)
         (define filepath (build-path dir file))
-        (define str (or (get-script-help-string filepath) ""))
+        (define str (or (with-handlers* ([exn:fail?
+                                          (λ (e) "Warning: Cannot read script help string.")])
+                          (get-script-help-string filepath))
+                        ""))
         (send msg-help-string set-label str)))
 
     ;;; Widgets

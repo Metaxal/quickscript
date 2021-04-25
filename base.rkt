@@ -5,7 +5,6 @@
          racket/path
          compiler/compilation-path         
          compiler/cm
-         errortrace/errortrace-lib
          "exn-gobbler.rkt")
 
 (provide (all-defined-out))
@@ -185,7 +184,8 @@
   (void)
   #;(compile-user-scripts (list file)))
 
-(define/contract (compile-user-scripts files #:exn-gobbler [gb (make-exn-gobbler)])
+(define/contract (compile-user-scripts files
+                                       #:exn-gobbler [gb (make-exn-gobbler "Compiling scripts")])
   (->* [(listof path-string?)]
        [#:exn-gobbler exn-gobbler?]
        exn-gobbler?)

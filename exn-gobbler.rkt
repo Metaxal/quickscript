@@ -22,10 +22,17 @@
 (define (exn-gobbler-empty? gb)
   (empty? (exn-gobbler-strs gb)))
 
+(define (exn->string exn)
+    (define sp (open-output-string))
+    (parameterize ([current-error-port sp])
+      ((error-display-handler) (exn-message exn) exn))
+    (get-output-string sp))
+
 (define (gobble gobbler exn summary)
-  (define marks
+  
+  #;(define marks
     (continuation-mark-set->context (exn-continuation-marks exn)))
-  (define str
+  #;(define str
     (string-join
      (filter-map (λ (m)
                    (match m
@@ -34,6 +41,7 @@
                      [else #false]))
                  marks)
      "\n"))
+  (define str (exn->string exn))
 
   (set-exn-gobbler-strs!      gobbler (cons str     (exn-gobbler-strs gobbler)))
   (set-exn-gobbler-summaries! gobbler (cons summary (exn-gobbler-summaries gobbler))))
@@ -45,7 +53,7 @@
    (if (exn-gobbler-title gobbler)
      (string-append (exn-gobbler-title gobbler) "\n")
      "")
-   (format "~a errors have been caught.\n" (length summaries))
+   (format "~a error(s) have been caught.\n" (length summaries))
    "\nSummary:\n"
    (string-join summaries "\n")
    "\n\nDetails:\n"

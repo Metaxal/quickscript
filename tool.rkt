@@ -2,7 +2,6 @@
 (require
   (for-syntax racket/base) ; for help menu
   drracket/tool ; necessary to build a drracket plugin
-  errortrace/errortrace-lib
   framework ; for preferences (too heavy a package?)
   help/search
   net/sendurl ; for the help menu
@@ -24,10 +23,12 @@ To debug:
 $ export PLTSTDERR=debug@quickscript && drracket&
 
 If the menu takes a long time to load, it's because the scripts are not compiled.
-Click on Scripts|Manage scripts|Compile user scripts.
+Click on `Scripts|Manage scripts|Compile scripts and reload`.
 It should then be very fast to load.
 
 |#
+
+(define orig-display-handler #f) ; will be set in the unit.
 
 (define (user-script-files #:exclude? [exclude? #t])
   (lib:all-files (lib:load library-file) #:exclude? exclude?))
@@ -35,7 +36,7 @@ It should then be very fast to load.
 (define (error-message-box str e)
   (define sp (open-output-string))
   (parameterize ([current-error-port sp])
-    (errortrace-error-display-handler (exn-message e) e))
+    (orig-display-handler (exn-message e) e))
 
   (message-box "Quickscript caught an exception"
                (string-append str " " (get-output-string sp))
@@ -63,7 +64,8 @@ It should then be very fast to load.
 ;; -> exn-gobbler?
 (define (compile-library)
   (time-info "Recompiling library"
-               (compile-user-scripts (user-script-files))))
+               (parameterize ([error-display-handler orig-display-handler])
+                 (compile-user-scripts (user-script-files)))))
 
 ;; -> void?
 (define (compile-library/frame)
@@ -85,6 +87,8 @@ It should then be very fast to load.
   (unit
     (import drracket:tool^)
     (export drracket:tool-exports^)
+
+    (set! orig-display-handler drracket:init:original-error-display-handler)
 
     (define script-menu-mixin
       (mixin (drracket:unit:frame<%>) ()
@@ -247,7 +251,8 @@ It should then be very fast to load.
              (define gb (make-exn-gobbler "Loading Scripts menu"))
              ;; Create an empty namespace to load all the scripts (in the same namespace).
              (define property-dicts
-               (parameterize ([current-namespace (make-base-empty-namespace)])
+               (parameterize ([current-namespace (make-base-empty-namespace)]
+                              [error-display-handler orig-display-handler])
                  ;; For all scripts in the script directory.
                  (append-map
                   (λ (f)
@@ -262,7 +267,11 @@ It should then be very fast to load.
                        (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
                                props-list))))
                   (user-script-files))))
-             (exn-gobbler-message-box gb "Quickscript: Errors while loading script properties")
+             ; Don't display an error on menu build, as an error is already shown
+             ; during compilation .
+             (log-quickscript-info (exn-gobbler->string gb))
+             #;(exn-gobbler-message-box gb "Quickscript: Errors while loading script properties")
+             
              ;; Sort the menu items lexicographically.
              (set! property-dicts
                    (sort property-dicts
@@ -313,9 +322,6 @@ It should then be very fast to load.
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
-        ;; Show the error messages that happened during the initial compilation.
-        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
-
         (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
         (for ([(lbl cbk)
                (in-dict
@@ -344,8 +350,10 @@ It should then be very fast to load.
                    [callback (λ _ (cbk))])))
         (new separator-menu-item% [parent scripts-menu])
 
-        (reload-scripts-menu)
-        ))
+        ;; Show the error messages that happened during the initial compilation.
+        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
+
+        (reload-scripts-menu)))
 
     ; If an exception is raised during these two phases, DrRacket displays 
     ; the error in a message box and deactivates the plugin before continuing. 
@@ -358,6 +366,4 @@ It should then be very fast to load.
     ; but the message box will be shown after the DrRacket frame is shown up.    
     (define init-compile-exn-gobbler (compile-library))
 
-    (drracket:get/extend:extend-unit-frame script-menu-mixin)
-
-    ))
+    (drracket:get/extend:extend-unit-frame script-menu-mixin)))
