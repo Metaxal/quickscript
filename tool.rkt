@@ -322,7 +322,7 @@ It should then be very fast to load.
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
-        (define manage-menu (new menu% [parent scripts-menu] [label "&Manage scripts"]))
+        (define manage-menu (new menu% [parent scripts-menu] [label "&Manage"]))
         (for ([(lbl cbk)
                (in-dict
                 `(("&New script…"                . ,(λ () (new-script)))
@@ -335,14 +335,14 @@ It should then be very fast to load.
                   ("&Reload menu"                . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (reload-scripts-menu)))
-                  ("&Compile scripts and reload" . ,(λ ()
+                  ("&Compile scripts" . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (compile-library/frame)
                                                       (reload-scripts-menu)))
-                  ("&Unload persistent scripts"  . ,(λ () (unload-persistent-scripts)))
+                  ("&Stop persistent scripts"  . ,(λ () (unload-persistent-scripts)))
                   (separator                     . #f)
                   ("&Help"                       . ,(λ () (open-help)))
-                  ("&Feedback/Bug report…"       . ,(λ () (bug-report)))
+                  ("&Report an issue…"           . ,(λ () (bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
