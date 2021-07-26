@@ -59,14 +59,14 @@ can add your own scripts there too if you think they may be useful to others.
 
 @section{Make your own script: First simple example}
 
-Click on the @gui{Scripts|Manage|New script...} menu item, and enter @gui{Reverse} for the script name.
+Click on the @gui{Scripts|Manage|New script…} menu item, and enter @gui{Reverse} for the script name.
 This creates and opens the file reverse.rkt in the user's scripts directory.
 Also, a new item automatically appears in the @gui{Scripts} menu.
 
 In the .rkt file that just opened in DrRacket, modify the @racket[define-script] definition to the following:
 @margin-note{Don't name your script function @racket[reverse], it would shadow Racket's own and make the script hang.}
 @margin-note{If you later change the @racket[#:label] property, you will need to reload the menu by clicking on
-@gui{Scripts|Manage|Reload scripts menu} after saving the file).}
+@gui{Scripts|Manage|Reload menu} after saving the file).}
 @(racketblock
   (define-script reverse-selection
     #:label "Reverse"
@@ -266,7 +266,7 @@ There are some additional properties:
   If @racket[#f], the return value is not used.
 
   If this value is changed, make sure to reload the menu with
-  @gui{Scripts | Manage | Reload menu}.
+  @gui{Scripts|Manage|Reload menu}.
  }
  @item{@racket[#:persistent]
 
@@ -295,7 +295,7 @@ There are some additional properties:
   If the script is persistent, the counter increases at each invocation of the script via the menu,
   whereas it always displays 1 if the script is not persistent.
 
-  @bold{Note:} Persistent scripts can be stopped by clicking on the
+  @bold{Note:} Persistent scripts can be stopped and resetby clicking on the
   @gui{Scripts|Manage|Stop persistent scripts} menu item.
   In the previous example, this will reset the counter. Make sure to stop a persistent script
   after editing it.
@@ -324,7 +324,7 @@ by clicking on @gui{Scripts|Manage|Reload menu}.
 
 When the user creates a new script, the latter is placed into a sub-directory of
 @racket[(find-system-path 'pref-dir)].
-A direct access to this folder is provided via the @gui{Scripts|Manage|Open script...} menu entry.
+A direct access to this folder is provided via the @gui{Scripts|Manage|Open script…} menu entry.
 
 Additional directories to look for scripts can be added via the @gui{Scripts|Manage|Library} menu entry.
 When a directory is added to the library, all its .rkt files (non-recursively) are considered as scripts.
