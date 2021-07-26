@@ -295,7 +295,7 @@ There are some additional properties:
   If the script is persistent, the counter increases at each invocation of the script via the menu,
   whereas it always displays 1 if the script is not persistent.
 
-  @bold{Note:} Persistent scripts can be stopped and resetby clicking on the
+  @bold{Note:} Persistent scripts can be stopped and reset by clicking on the
   @gui{Scripts|Manage|Stop persistent scripts} menu item.
   In the previous example, this will reset the counter. Make sure to stop a persistent script
   after editing it.
