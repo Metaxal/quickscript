@@ -49,7 +49,7 @@ To install it, either look for @tt{quickscript-extra} in the DrRacket menu @gui{
 or run the raco command:
 @commandline{raco pkg install quickscript-extra}
 
-Then click on @gui{Scripts|Manage scripts|Compile scripts and reload}. (There is no need to restart DrRacket.)
+Then click on @gui{Scripts|Manage|Compile scripts}. (There is no need to restart DrRacket.)
 
 @subsection{Installing scripts: More scripts}
 
@@ -59,14 +59,14 @@ can add your own scripts there too if you think they may be useful to others.
 
 @section{Make your own script: First simple example}
 
-Click on the @gui{Scripts|Manage scripts|New script...} menu item, and enter @gui{Reverse} for the script name.
+Click on the @gui{Scripts|Manage|New script…} menu item, and enter @gui{Reverse} for the script name.
 This creates and opens the file reverse.rkt in the user's scripts directory.
 Also, a new item automatically appears in the @gui{Scripts} menu.
 
 In the .rkt file that just opened in DrRacket, modify the @racket[define-script] definition to the following:
 @margin-note{Don't name your script function @racket[reverse], it would shadow Racket's own and make the script hang.}
 @margin-note{If you later change the @racket[#:label] property, you will need to reload the menu by clicking on
-@gui{Scripts|Manage scripts|Reload scripts menu} after saving the file).}
+@gui{Scripts|Manage|Reload menu} after saving the file).}
 @(racketblock
   (define-script reverse-selection
     #:label "Reverse"
@@ -266,7 +266,7 @@ There are some additional properties:
   If @racket[#f], the return value is not used.
 
   If this value is changed, make sure to reload the menu with
-  @gui{Scripts | Manage scripts | Reload menu}.
+  @gui{Scripts|Manage|Reload menu}.
  }
  @item{@racket[#:persistent]
 
@@ -295,12 +295,12 @@ There are some additional properties:
   If the script is persistent, the counter increases at each invocation of the script via the menu,
   whereas it always displays 1 if the script is not persistent.
 
-  @bold{Note:} Persistent scripts can be "unloaded" by clicking on the
-  @gui{Scripts|Manage scripts|Unload persistent scripts} menu item.
-  In the previous example, this will reset the counter. Make sure to unload a persistent script
+  @bold{Note:} Persistent scripts can be stopped and reset by clicking on the
+  @gui{Scripts|Manage|Stop persistent scripts} menu item.
+  In the previous example, this will reset the counter. Make sure to stop a persistent script
   after editing it.
-  @gui{Scripts|Manage scripts|Reload menu} and @gui{Scripts|Manage scripts|Compile scripts and reload}
-  also unload persistent scripts.
+  @gui{Scripts|Manage|Reload menu} and @gui{Scripts|Manage|Compile scripts}
+  also stop persistent scripts.
 
   @bold{Technical point:} The script's procedure is called @emph{outside} of the namespace that was
   used to @racket[dynamic-require] it, and inside DrRacket frame's namespace so as to have access
@@ -318,15 +318,15 @@ There are some additional properties:
  }]
 
 If changes are made to these properties, the Scripts menu will probably need to be reloaded
-by clicking on @gui{Scripts|Manage scripts|Reload scripts menu}.
+by clicking on @gui{Scripts|Manage|Reload menu}.
 
 @section{Script library}
 
 When the user creates a new script, the latter is placed into a sub-directory of
 @racket[(find-system-path 'pref-dir)].
-A direct access to this folder is provided via the @gui{Scripts|Manage scripts|Open script...} menu entry.
+A direct access to this folder is provided via the @gui{Scripts|Manage|Open script…} menu entry.
 
-Additional directories to look for scripts can be added via the @gui{Scripts|Manage scripts|Library} menu entry.
+Additional directories to look for scripts can be added via the @gui{Scripts|Manage|Library} menu entry.
 When a directory is added to the library, all its .rkt files (non-recursively) are considered as scripts.
 Specific files can be excluded from the library.
 
@@ -340,7 +340,7 @@ To solve this problem, the user can instead make a @italic{shadow script},
 which creates a new script in the user's directory, with its own set of properties
 that can be changed by the user, but the procedure of this script is bound to that of the original script.
 
-To make a shadow script, open the script library in @gui{Scripts|Manage scripts|Library}, navigate to the third-party script and click on @gui{Shadow}.
+To make a shadow script, open the script library in @gui{Scripts|Manage|Library}, navigate to the third-party script and click on @gui{Shadow}.
 
 
 @section{Updating the quickscript package}
