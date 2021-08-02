@@ -167,7 +167,7 @@ It should then be very fast to load.
           ; Create a namespace for the script:
           (define (make-script-namespace)
             (define ns (make-base-empty-namespace))
-            (for ([mod '(racket/class racket/gui/base)])
+            (for ([mod '(racket/class racket/gui/base drracket/tool-lib)])
               (namespace-attach-module (namespace-anchor->empty-namespace a)
                                        mod ns))
             ns)
