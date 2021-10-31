@@ -342,7 +342,7 @@ It should then be very fast to load.
                   ("&Stop persistent scripts"    . ,(λ () (unload-persistent-scripts)))
                   (separator                     . #f)
                   ("&Help"                       . ,(λ () (open-help)))
-                  ("&Report an issue"            . ,(λ () (bug-report)))
+                  ("Report an &issue"            . ,(λ () (bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
