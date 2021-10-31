@@ -25,3 +25,6 @@
 
 (define compile-omit-paths
   '())
+
+(define license
+  '(Apache-2.0 OR MIT))
