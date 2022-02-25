@@ -236,6 +236,21 @@ Here is the meaning of the keyword arguments:
                 (send fr get-tab-count)))))
  }]
 
+@bold{Note:} A script procedure can have additional optional arguments (keyword or not) and rest arguments,
+but not additional mandatory arguments. For example:
+@(racketblock
+    (define-script append-plop
+      #:label "Append plop"
+      (λ (selection [more ""] #:even-more [even-more ""]) 
+        (string-append selection "_plop" more even-more)))
+
+    (define-script append-plop-plip
+      #:label "Append plop plip ploop"
+      (λ (selection)
+        @code:comment{Call the first script's procedure:}
+        (append-plop selection "_plip" #:even-more "_ploop"))))
+
+
 @subsection{The script's properties}
 
 The properties are mere data and cannot contain expressions.
