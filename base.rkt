@@ -51,8 +51,7 @@
   (when (eq? (system-path-convention-type) 'unix)
     (check-true
      (path-string=? "a/b/c.rkt"
-                    (build-path "a" "b/c.rkt"))))
-  )
+                    (build-path "a" "b/c.rkt")))))
 
 (define-syntax-rule (time-info str body ...)
   (let ([ms (current-milliseconds)])

@@ -200,7 +200,7 @@ It should then be very fast to load.
                 ;; If it were evaluated inside ns, (send fr open-in-new-tab <some-file>)
                 ;; wouldn't work.
                 (let-values ([(_ kws) (procedure-keywords f)])
-                  (let ([k-v (sort (map (λ (k) (assoc k kw-dict)) kws)
+                  (let ([k-v (sort (filter-map (λ (k) (assoc k kw-dict)) kws)
                                    keyword<? #:key car)])
                     (keyword-apply f (map car k-v) (map cdr k-v) str '()))))))
           (define (insert-to-text text)
