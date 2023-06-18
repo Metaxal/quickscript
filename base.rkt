@@ -64,7 +64,7 @@
 (define props-default
   `((name             . #f)
     (filepath         . #f)
-    (label            . "My Script 1") ; Should be mandatory
+    (label            . #f) ; Should be mandatory
     (menu-path        . ())
     (shortcut         . #f)
     (shortcut-prefix  . #f) ; should be (get-default-shortcut-prefix), but this depends on gui/base

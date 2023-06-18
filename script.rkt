@@ -1,8 +1,10 @@
 #lang racket/base
 (require (for-syntax racket/base
-                     syntax/parse))
+                     syntax/parse)
+         syntax/parse)
 
-(provide define-script)
+(provide define-script
+         define-hook)
 
 ;; Keep this file as light as possible as it is loaded in each script.
 
@@ -41,31 +43,31 @@
   (syntax-parse stx
     [(_ proc (~alt (~once (~seq #:label label-val))
                    (~optional (~seq #:menu-path (menu-path-val ...))
-                                     #:defaults ([(menu-path-val 1) null]))
+                              #:defaults ([(menu-path-val 1) null]))
                    (~optional (~seq #:help-string help-string-val)
-                                     #:defaults ([help-string-val #'""]))
+                              #:defaults ([help-string-val #'""]))
                    (~optional (~seq #:shortcut shortcut-val)
-                                     #:defaults ([shortcut-val #'#f]))
+                              #:defaults ([shortcut-val #'#f]))
                    (~optional (~seq #:shortcut-prefix shortcut-prefix-val)
-                                     #:defaults ([shortcut-prefix-val #'#f]))
+                              #:defaults ([shortcut-prefix-val #'#f]))
                    (~optional (~and #:persistent
-                                           (~bind [persistent-val #'#t]))
-                                     #:defaults ([persistent-val #'#f]))
+                                    (~bind [persistent-val #'#t]))
+                              #:defaults ([persistent-val #'#f]))
                    (~optional (~seq #:output-to
-                                           (~and output-to-val
-                                                 (~or (~datum selection)
-                                                      (~datum new-tab)
-                                                      (~datum message-box)
-                                                      (~datum clipboard)
-                                                      #f)))
-                                     #:defaults ([output-to-val #'selection]))
+                                    (~and output-to-val
+                                          (~or (~datum selection)
+                                               (~datum new-tab)
+                                               (~datum message-box)
+                                               (~datum clipboard)
+                                               #f)))
+                              #:defaults ([output-to-val #'selection]))
                    (~optional (~seq #:os-types 
-                                           (~and os-types-val
-                                                 [(~alt (~optional (~datum unix))
-                                                        (~optional (~datum macosx))
-                                                        (~optional (~datum windows)))
-                                                  ...]))
-                                     #:defaults ([os-types-val #'(unix macosx windows)])))
+                                    (~and os-types-val
+                                          [(~alt (~optional (~datum unix))
+                                                 (~optional (~datum macosx))
+                                                 (~optional (~datum windows)))
+                                           ...]))
+                              #:defaults ([os-types-val #'(unix macosx windows)])))
         ...
         rhs:expr)
      (add-submod-content!
@@ -84,9 +86,52 @@
        (begin (provide proc)
               (define proc rhs)))]))
 
+#;(begin-for-syntax
+  (define-splicing-syntax-class maybe-persistent
+    (pattern (~optional (~and #:persistent
+                              (~bind [persistent? #'#t]))
+                        #:defaults ([persistent? #'#f])))))
+
+(define-syntax (define-hook stx)
+  (syntax-parse stx
+    [(_ proc (~alt (~optional (~seq #:help-string help-string-val)
+                              #:defaults ([help-string-val #'""]))
+                   #;persistent:maybe-persistent
+                   (~optional (~and #:persistent
+                                    (~bind [persist? #'#t]))
+                              #:defaults  ([persist? #'#f]))
+                   (~optional (~seq #:output-to
+                                    (~and output-to-val
+                                          (~or (~datum selection)
+                                               (~datum new-tab)
+                                               (~datum message-box)
+                                               (~datum clipboard)
+                                               #f)))
+                              #:defaults ([output-to-val #'selection]))
+                   (~optional (~seq #:os-types 
+                                    (~and os-types-val
+                                          [(~alt (~optional (~datum unix))
+                                                 (~optional (~datum macosx))
+                                                 (~optional (~datum windows)))
+                                           ...]))
+                              #:defaults ([os-types-val #'(unix macosx windows)])))
+        ...
+        rhs:expr)
+     (add-submod-content!
+      #`(begin
+          (provide proc)
+          (define proc (list
+                        (cons 'label            #f)
+                        (cons 'help-string      'help-string-val)
+                        (cons 'persistent?      '#,(attribute persist? #;persistent.persistent?))
+                        (cons 'os-types         'os-types-val)))))
+     (syntax/loc stx
+       (begin (provide proc)
+              (define proc rhs)))]))
+
 (define-syntax (generate-submodule stx)
   #`(module script-info racket/base #,@submodule-content)
-  ; for debugging:
+  ; for debugging: (just Run the script file to observe the generated submodule)
   #;#`(begin (require racket/pretty)
            (pretty-print (list '#,submodule-content))))
 

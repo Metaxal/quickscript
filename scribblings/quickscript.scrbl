@@ -5,10 +5,10 @@
           racket/path
           racket/runtime-path
           scribble/racket
-          (for-label quickscript)
           (for-syntax racket/base) ; for build-path in runtime-path
-          (for-label racket/gui)
-          (for-label drracket/tool-lib))
+          (for-label quickscript
+                     racket/gui
+                     drracket/tool-lib))
 
 @(define (codeblock/file file)
    (list
@@ -21,6 +21,8 @@
 
 @;author{Laurent Orseau}
 @(smaller (author+email "Laurent Orseau" "laurent.orseau@gmail.com"))
+
+@defmodule[quickscript]
 
 @section{Introduction}
 
@@ -126,7 +128,6 @@ Below we detail first the procedure and its arguments and then the script's prop
                  (elem " | "))))
 @;subsection{At a glance}
 
-@defmodule[quickscript]
 @defform[(define-script name
            property ...
            proc)
@@ -172,7 +173,7 @@ The procedure must returns either @racket[#f] or a @racket[string?].
 If it returns @racket[#f], no change is applied to the current editor, but if it returns a string,
 then the current selection is replace with the return value.
 
-If some of the above keywords are specified in the procedure, the Script Plugin detects them and passes the
+If some of the above keywords are specified in the procedure, Quickscript detects them and passes the
 corresponding values, so the procedure can take various forms:
 @(racketblock
   (λ (selection) ....)
@@ -335,6 +336,77 @@ There are some additional properties:
 If changes are made to these properties, the Scripts menu will probably need to be reloaded
 by clicking on @gui{Scripts|Manage|Reload menu}.
 
+@section{Hooks}
+
+A script function defined with @racket[define-script] always adds a menu item, and is called
+only when the menu item is clicked or called.
+
+By contrast, script functions defined with @racket[define-hook] do not add a menu item, but are run
+automatically on specific events --- see the list below.
+
+@defform[(define-hook name
+           property ...
+           proc)
+         #:grammar
+          ; Do not split these line (verbatim typesetting)
+         [(property (code:line #:help-string string)
+                    (code:line #:persistent? #t #,(elem "|") #f)
+                    (code:line #:os-types (os-type ...) ))
+          (os-type #,(grammar-choice 'macosx 'unix 'windows))
+          (proc (code:line (#,(elem-symbol 'λ) ([#:editor editor-id]
+                                                [#:definitions definitions-id]
+                                                [#:interactions interactions-id]
+                                                [#:frame frame-id]
+                                                [#:file file-id]
+                                                other-kwargs ...)
+                             body-expr ...
+                             return-expr))) ;string-expr #,(elem "|") void-expr #,(elem "|") #f
+          ]
+         ]{
+Defines a hook.
+The hook identifier @racket[name] must be one of the supported hooks (see list below).
+
+See @racket[define-script] for information regarding the keyword arguments of the script function,
+and the properties of the script.
+Note that a hook function does not have a @racket[selection-id] argument.
+Each hook may receive additional optional arguments in @racket[other-kwargs], but as for scripts,
+these arguments are optional and do not need to be specified in the hook function's signature:
+Quickscript recognizes which keywords are asked for by the hook.
+
+The additional keywords accepted by the hook function are the arguments of the original method or
+function.
+
+For example, the following hook displays a message box when a file is loaded in DrRacket:
+ @racketblock[
+ (define-hook on-load-file
+   (λ (#:file f #:hook-editor ed #:load-filename lf #:format fmt)
+     (message-box "on-load-file"
+                  (format "f: ~a lf: ~a fmt: ~a" f lf fmt))))]
+This hook is called whenever @method[editor<%> on-load-file] (from @racket[editor<%>]) is called,
+and the keyword arguments @racket[#:load-filename] and @racket[#:format] correspond
+to the arguments of @method[editor<%> on-load-file].
+The keyword @racket[#:hook-editor] corresponds to the editor for which the hook is called ---
+it may be different from the value from @racket[#:editor], which corresponds to the editor with the
+keyboard focus.
+The keyword @racket[#:file] is available to all hooks.
+
+DrRacket's frame is always available via the @racket[#:frame] keyword.
+
+List of supported hooks, with the additional keywords within parentheses:
+ @itemlist[
+ @item{@racket[on-tab-close] @racket[(#:hook-tab)]: augments @method[drracket:unit:tab<%> on-close]}
+ @item{@method[editor<%> on-load-file] @racket[(#:hook-editor #:load-filename #:format)]}
+ @item{@method[editor<%> after-load-file] @racket[(#:hook-editor #:success?)]}
+ @item{@method[editor<%> on-save-file] @racket[(#:hook-editor #:load-filename #:format)]}
+ @item{@method[editor<%> after-save-file] @racket[(#:hook-editor #:success?)]}
+ @item{@racket[after-create-new-tab ()] : called after @method[drracket:unit:frame<%> create-new-tab]}
+ @item{@method[drracket:unit:frame<%> on-tab-change] @racket[(#:hook-editor #:tab-from #:tab-to)]}
+ @item{@method[drracket:unit:frame% on-close] @racket[()] : called when DrRacket exits.}
+ @item{@racket[on-startup] @racket[()]: called when DrRacket starts, but before the frame is shown. No
+  additional keyword argument.}
+ ]
+}
+
 @section{Script library}
 
 When the user creates a new script, the latter is placed into a sub-directory of
@@ -405,9 +477,9 @@ Don't forget to register your package on the
 
 @section{License}
 
-MIT License
+Apache-2.0 or MIT License, at your option.
 
-Copyright (c) 2012-2018 by @link["mailto:laurent.orseau@gmail.com"]{Laurent Orseau @"<laurent.orseau@gmail.com>"}.
+Copyright (c) 2012-2023 by @link["mailto:laurent.orseau@gmail.com"]{Laurent Orseau @"<laurent.orseau@gmail.com>"}.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

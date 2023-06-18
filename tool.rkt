@@ -81,6 +81,16 @@ It should then be very fast to load.
        (exn-gobbler-message-box gb "Quickscript: Error during compilation"))
      (λ () (send fr show #false))))
 
+(define (property-dict-hook? props)
+  (not (prop-dict-ref props 'label)))
+
+(define (insert-to-text text str)
+  ; Inserts the text, possibly overwriting the selection:
+  (send text begin-edit-sequence)
+  (send text insert str)
+  (send text end-edit-sequence))
+
+
 (define-namespace-anchor a)
 
 (define tool@
@@ -90,6 +100,12 @@ It should then be very fast to load.
 
     (set! orig-display-handler drracket:init:original-error-display-handler)
 
+    ;===================;
+    ;=== Frame mixin ===;
+    ;===================;
+
+    (define drr-frame #f)
+
     (define script-menu-mixin
       (mixin (drracket:unit:frame<%>) ()
         (super-new)
@@ -97,7 +113,6 @@ It should then be very fast to load.
                  get-definitions-text
                  get-interactions-text
                  ;register-toolbar-button
-                 create-new-tab
                  )
 
         (define/private (get-the-text-editor)
@@ -109,7 +124,7 @@ It should then be very fast to load.
               defed
               (get-interactions-text)))
 
-        (define frame this)
+        (set! drr-frame this)
 
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
@@ -140,9 +155,29 @@ It should then be very fast to load.
             (send this open-in-new-tab file)))
 
         (define/private (open-script)
-          (define file (get-file "Open a script" frame user-script-dir #f #f '()
+          (define file (get-file "Open a script" drr-frame user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
+
+                
+        (define/private (open-help)
+          (perform-search "quickscript")
+          ; Does not seem to work well.
+          #;(send-main-page #:sub "quickscript/index.html"))
+
+        (define/private (bug-report)
+          (send-url "https://github.com/Metaxal/quickscript/issues"))
+
+        (define menu-bar (send this get-menu-bar))
+
+        (define menu-reload-count 0)
+
+        (define scripts-menu
+          (new menu% [parent menu-bar] [label "&Scripts"]))
+
+        ;::::::::::::::::;
+        ;:: Run Script ::;
+        ;::::::::::::::::;
 
         ;; dict for persistent scripts:
         ;; the module is instanciated only once, and made available for future calls.
@@ -152,18 +187,20 @@ It should then be very fast to load.
           (set! namespace-dict (make-hash)))
 
         ;; f: path?
-        (define/private (run-script props)
+        (define/private (run-script props #:more-kwargs [more-kwargs '()])
           (define name         (prop-dict-ref props 'name))
           (define fpath        (prop-dict-ref props 'filepath))
           (define output-to    (prop-dict-ref props 'output-to))
           (define persistent?  (prop-dict-ref props 'persistent?))
+          (define hook?        (property-dict-hook? props))
           ; For frame:text% :
           ;(define text (send frame get-editor))
           ; For DrRacket:
           (define text (get-the-text-editor))
-          (define str (send text get-text
-                            (send text get-start-position)
-                            (send text get-end-position)))
+          (define str (and (not hook?) ; avoid unnecessary computation
+                           (send text get-text
+                                 (send text get-start-position)
+                                 (send text get-end-position))))
           ; Create a namespace for the script:
           (define (make-script-namespace)
             (define ns (make-base-empty-namespace))
@@ -180,7 +217,7 @@ It should then be very fast to load.
 
           (define file-str (path->string fpath))
           (define ed-file (send (get-definitions-text) get-filename))
-          (define str-out
+          (define script-result
             (with-error-message-box
                 (format "Run: Error in script file ~s:\n" file-str)
               #:error-value #f
@@ -190,11 +227,13 @@ It should then be very fast to load.
                          ; Ensure the script is compiled for the correct version of Racket
                          (compile-user-script fpath)
                          (dynamic-require fpath name))]
-                    [kw-dict `((#:definitions   . ,(get-definitions-text))
-                               (#:interactions  . ,(get-interactions-text))
-                               (#:editor        . ,text)
-                               (#:file          . ,ed-file)
-                               (#:frame         . ,this))])
+                    [kw-dict (append
+                              `((#:definitions   . ,(get-definitions-text))
+                                (#:interactions  . ,(get-interactions-text))
+                                (#:editor        . ,text)
+                                (#:file          . ,ed-file)
+                                (#:frame         . ,this))
+                              more-kwargs)])
                 ;; f is applied *outside* the created namespace so as to make
                 ;; all features of drracket's frame available.
                 ;; If it were evaluated inside ns, (send fr open-in-new-tab <some-file>)
@@ -202,44 +241,96 @@ It should then be very fast to load.
                 (let-values ([(_ kws) (procedure-keywords f)])
                   (let ([k-v (sort (filter-map (λ (k) (assoc k kw-dict)) kws)
                                    keyword<? #:key car)])
-                    (keyword-apply f (map car k-v) (map cdr k-v) str '()))))))
-          (define (insert-to-text text)
-            ; Inserts the text, possibly overwriting the selection:
-            (send text begin-edit-sequence)
-            (send text insert str-out)
-            (send text end-edit-sequence))
-          ; DrRacket specific:
-          (when (or (string? str-out) (is-a? str-out snip%)) ; do not modify the file if no output
-            (case output-to
-              [(new-tab)
-               (create-new-tab)
-               (define new-defs (get-definitions-text))
-               (send new-defs select-all) ; get the newly created text
-               (insert-to-text new-defs)]
-              [(selection)
-               (insert-to-text text)]
-              [(message-box)
-               (when (string? str-out)
-                 (message-box "Output" str-out this))]
-              [(clipboard)
-               (when (string? str-out)
-                 (send the-clipboard set-clipboard-string str-out 0))]
-              )))
+                    (if hook?
+                      (keyword-apply f (map car k-v) (map cdr k-v) '())
+                      (keyword-apply f (map car k-v) (map cdr k-v) str '())))))))
+          (cond [hook?
+                 ;; Return the script result as is, to be used by the caller.
+                 ;; However, since multiple hooks may be called, there's usually no good way
+                 ;; to aggregate the return values, so we just return void
+                 script-result]
+                [(or (string? script-result) (is-a? script-result snip%))
+                 ;; Do not modify the file if no output
+                 (case output-to
+                   [(new-tab)
+                    (create-new-tab)
+                    (define new-defs (get-definitions-text))
+                    (send new-defs select-all) ; get the newly created text
+                    (insert-to-text new-defs script-result)]
+                   [(selection)
+                    (insert-to-text text script-result)]
+                   [(message-box)
+                    (when (string? script-result)
+                      (message-box "Output" script-result this))]
+                   [(clipboard)
+                    (when (string? script-result)
+                      (send the-clipboard set-clipboard-string script-result 0))])]))
 
-        (define/private (open-help)
-          (perform-search "quickscript")
-          ; Does not seem to work well.
-          #;(send-main-page #:sub "quickscript/index.html"))
+        ;; Runs *all* scripts with the given name (identifier) that are *not* menu items.
+        ;; TODO: Rename #:label to #:menu-label or #:entry-label for clarity?
+        ;; Notice: the result is #<void>, and the results from the scripts are discarded.
+        (define/public (find-and-run-non-menu-scripts name #:more-kwargs [more-kwargs '()])
+          (for ([props (in-list (hash-ref property-dicts name '()))])
+            (run-script props #:more-kwargs more-kwargs)))
 
-        (define/private (bug-report)
-          (send-url "https://github.com/Metaxal/quickscript/issues"))
+        ;::::::::::::::::;
+        ;:: Some hooks ::;
+        ;::::::::::::::::;
 
-        (define menu-bar (send this get-menu-bar))
+        (define/augment (on-tab-change tab-from tab-to)
+          (find-and-run-non-menu-scripts 'on-tab-change
+                                         #:more-kwargs `((#:tab-from . ,tab-from)
+                                                         (#:tab-to   . ,tab-to))))
 
-        (define menu-reload-count 0)
+        (define/augment (on-close)
+          (find-and-run-non-menu-scripts 'on-close #:more-kwargs '()))
 
-        (define scripts-menu
-          (new menu% [parent menu-bar] [label "&Scripts"]))
+        ;; At this stage, the frame is not shown yet
+        (define/public (on-startup)
+          (find-and-run-non-menu-scripts 'on-startup #:more-kwargs '()))
+
+        (define/override  (create-new-tab [filename #f]
+                                          #:start-pos [start-pos 0]
+                                          #:end-pos [end-pos 'same])
+          (begin0 (super create-new-tab filename #:start-pos start-pos #:end-pos end-pos)
+                  (when filename
+                    (find-and-run-non-menu-scripts 'after-create-new-tab #:more-kwargs '()))))
+        
+        ;::::::::::::::::;
+        ;:: Properties ::;
+        ;::::::::::::::::;
+
+        ;; All menu item scripts have are at the key `#f` in property-dicts.
+        ;; The key for other scripts (hooks, not menu entries) is the script's identifier (name).
+        (define property-dicts (make-hasheq))
+
+        (define/private (load-properties!)
+          (set! property-dicts (make-hasheq))
+          (define gb (make-exn-gobbler "Loading Scripts menu"))
+          ;; Create an empty namespace to load all the scripts (in the same namespace).
+          (parameterize ([current-namespace (make-base-empty-namespace)]
+                         [error-display-handler orig-display-handler])
+            ;; For all script files in the script directory.
+            (for ([f (in-list (user-script-files))])
+              (time-info
+               (string-append "Loading file " (path->string f))
+               (with-handlers* ([exn:fail?
+                                 (λ (e)
+                                   (gobble gb e (format "Script file ~s:" (path->string f)))
+                                   '())])
+                 (define props-list (get-property-dicts f))
+                 (for ([props (in-list props-list)])
+                   ; Keep only the scripts that match the current os type.
+                   (when (memq this-os-type (prop-dict-ref props 'os-types))
+                     (define key
+                       (if (prop-dict-ref props 'label)   ; TODO: CHECK DEFAULT
+                         #f ; This is a menu item script
+                         (prop-dict-ref props 'name))) ; This is a hook
+                     (hash-update! property-dicts key (λ (acc) (cons props acc)) '())))))))
+          ; Don't display an error on menu build, as an error is already shown
+          ; during compilation.
+          (log-quickscript-info (exn-gobbler->string gb))
+          #;(exn-gobbler-message-box gb "Quickscript: Errors while loading script properties"))
 
         (define/private (reload-scripts-menu)
           (time-info
@@ -247,33 +338,13 @@ It should then be very fast to load.
            (set! menu-reload-count (add1 menu-reload-count))
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
-           (let ()
-             (define gb (make-exn-gobbler "Loading Scripts menu"))
-             ;; Create an empty namespace to load all the scripts (in the same namespace).
-             (define property-dicts
-               (parameterize ([current-namespace (make-base-empty-namespace)]
-                              [error-display-handler orig-display-handler])
-                 ;; For all scripts in the script directory.
-                 (append-map
-                  (λ (f)
-                    (time-info
-                     (string-append "Loading file " (path->string f))
-                     (with-handlers* ([exn:fail?
-                                       (λ (e)
-                                         (gobble gb e (format "Script file ~s:" (path->string f)))
-                                         '())])
-                       (define props-list (get-property-dicts f))
-                       ; Keep only the scripts that match the current os type.
-                       (filter (λ (props) (memq this-os-type (prop-dict-ref props 'os-types)))
-                               props-list))))
-                  (user-script-files))))
-             ; Don't display an error on menu build, as an error is already shown
-             ; during compilation .
-             (log-quickscript-info (exn-gobbler->string gb))
-             #;(exn-gobbler-message-box gb "Quickscript: Errors while loading script properties")
-             
-             ;; Sort the menu items lexicographically.
-             (set! property-dicts
+           (load-properties!)
+           
+           (let* ([property-dicts
+                   ;; Keep only menu entries
+                   (hash-ref property-dicts #f '())]
+                  [property-dicts
+                   ;; Sort the menu items lexicographically
                    (sort property-dicts
                          string<=?
                          #:key (λ (props)
@@ -288,7 +359,8 @@ It should then be very fast to load.
                                      (list (prop-dict-ref props 'label)))
                                     "/")
                                    "&" "" #:all? #t)))
-                         #:cache-keys? #t))
+                         #:cache-keys? #t)])
+
              ;; remove all scripts items, after the default ones:
              (time-info
               "Deleting menu items"
@@ -302,8 +374,7 @@ It should then be very fast to load.
                      [shortcut        (prop-dict-ref props 'shortcut)]
                      [shortcut-prefix (or (prop-dict-ref props 'shortcut-prefix)
                                           (get-default-shortcut-prefix))]
-                     [help-string     (prop-dict-ref props 'help-string)]
-                     )
+                     [help-string     (prop-dict-ref props 'help-string)])
                  ; Create the menu hierarchy if it doesn't exist.
                  (define parent-menu
                    (let loop ([menu-path menu-path] [parent scripts-menu])
@@ -353,7 +424,85 @@ It should then be very fast to load.
         ;; Show the error messages that happened during the initial compilation.
         (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
 
-        (reload-scripts-menu)))
+        (reload-scripts-menu)
+        (on-startup)))
+
+    ;====================;
+    ;=== Editor mixin ===;
+    ;====================;
+
+     (define text-mixin
+      (mixin ((class->interface text%)) ()
+ 
+        (inherit #;begin-edit-sequence
+                 #;end-edit-sequence
+                 #;insert
+                 #;get-text
+                 #;get-canvas
+                 #;get-top-level-window)
+
+        ;; filename: path?
+  	;; fmt: (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
+        (define/augment (on-load-file filename fmt)
+          (send drr-frame find-and-run-non-menu-scripts
+                'on-load-file
+                #:more-kwargs `((#:hook-editor . ,this)
+                                (#:load-filename . ,filename)
+                                (#:format . ,fmt))))
+        
+        (define/augment (after-load-file success?)
+            (send drr-frame find-and-run-non-menu-scripts
+                  'after-load-file
+                  #:more-kwargs `((#:hook-editor . ,this)
+                                  (#:success? . ,success?))))
+
+        ;; filename : path?
+  	;; format :  (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
+        (define/augment (on-save-file filename fmt)
+          (send drr-frame find-and-run-non-menu-scripts
+                'on-save-file
+                #:more-kwargs `((#:hook-editor . ,this)
+                                (#:load-filename . ,filename)
+                                (#:format . ,fmt))))
+        
+        (define/augment (after-save-file success?)
+          (send drr-frame find-and-run-non-menu-scripts
+                  'after-save-file
+                  #:more-kwargs `((#:hook-editor . ,this)
+                                  (#:success? . ,success?))))
+
+        #;(define/override (on-focus on?) #f)
+
+        #;(define/augment (on-insert start len) #f)
+        #;(define/augment (after-insert start len) #f)
+ 
+        #;(define/augment (on-delete start len) #f)
+        #;(define/augment (after-delete start len) #f)
+
+        #;(define/override (on-default-char kw-evt) #f)
+        #;(define/override (on-default-event ms-evt) #f)
+
+        ;; TODO:
+        #;can-load-file? #;can-save-file?
+        #;on-edit-sequence #;after-edit-sequence
+        #;on-scroll-to #;after-scroll-to
+        #;on-change
+        #;on-display-size
+        #;on-snip-modified
+ 
+        (super-new)))
+
+     ;=================;
+     ;=== Tab mixin ===;
+     ;=================;
+
+     (define tab-mixin
+       (mixin (drracket:unit:tab<%>) ()
+         (define/augment (on-close)
+           (send drr-frame find-and-run-non-menu-scripts
+                 'on-tab-close
+                 #:more-kwargs `((#:hook-tab . ,this))))
+         (super-new)))
 
     ; If an exception is raised during these two phases, DrRacket displays 
     ; the error in a message box and deactivates the plugin before continuing. 
@@ -366,4 +515,7 @@ It should then be very fast to load.
     ; but the message box will be shown after the DrRacket frame is shown up.    
     (define init-compile-exn-gobbler (compile-library))
 
-    (drracket:get/extend:extend-unit-frame script-menu-mixin)))
+    ;; Search for "Extending the Existing DrRacket Classes" to see what can be extended:
+    (drracket:get/extend:extend-definitions-text text-mixin)
+    (drracket:get/extend:extend-tab              tab-mixin)
+    (drracket:get/extend:extend-unit-frame       script-menu-mixin)))
