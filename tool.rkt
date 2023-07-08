@@ -26,6 +26,8 @@ If the menu takes a long time to load, it's because the scripts are not compiled
 Click on `Scripts|Manage scripts|Compile scripts and reload`.
 It should then be very fast to load.
 
+The maximize button of the frame also disappears, as if the X11 maximize property was gone
+
 |#
 
 (define orig-display-handler #f) ; will be set in the unit.
@@ -113,7 +115,7 @@ It should then be very fast to load.
                  get-definitions-text
                  get-interactions-text
                  ;register-toolbar-button
-                 )
+                 create-new-tab)
 
         (define/private (get-the-text-editor)
           ; for a frame:text% :
@@ -277,6 +279,11 @@ It should then be very fast to load.
         ;:: Some hooks ::;
         ;::::::::::::::::;
 
+
+        ;; NOTICE: If new define/pubment methods are added in drracket/private/unit.rkt,
+        ;; then these methods must be declared also in drracket/private/interface.rkt
+
+        ;; TODO: Should we have an `after-tab-change`?
         (define/augment (on-tab-change tab-from tab-to)
           (find-and-run-non-menu-scripts 'on-tab-change
                                          #:more-kwargs `((#:tab-from . ,tab-from)
@@ -289,12 +296,21 @@ It should then be very fast to load.
         (define/public (on-startup)
           (find-and-run-non-menu-scripts 'on-startup #:more-kwargs '()))
 
-        (define/override  (create-new-tab [filename #f]
-                                          #:start-pos [start-pos 0]
-                                          #:end-pos [end-pos 'same])
-          (begin0 (super create-new-tab filename #:start-pos start-pos #:end-pos end-pos)
-                  (when filename
-                    (find-and-run-non-menu-scripts 'after-create-new-tab #:more-kwargs '()))))
+        (define/augment (after-create-new-drracket-frame show?)
+          (queue-callback ; TODO: should this be here or in drracket:unit?
+           (λ () (find-and-run-non-menu-scripts 'after-create-new-drracket-frame
+                                                #:more-kwargs `((#:show? . ,show?))))))
+
+        ;; Specialized to only when a new empty tab is created.
+        ;; For loading a file, see `on-load-file`.
+        (define/augment (after-create-new-tab tab filename start-pos end-pos)
+          (unless filename
+            (find-and-run-non-menu-scripts 'after-create-new-tab
+                                           #:more-kwargs `((#:tab . ,tab)))))
+
+        ;; TODO: Add a hook for execute-callback. Maybe add a pubment method in drr:unit:frame
+        ;; that matches the hook.
+        ;;https://docs.racket-lang.org/tools/drracket_unit.html#%28meth._%28%28%28lib._drracket%2Ftool-lib..rkt%29._drracket~3aunit~3aframe~25%29._execute-callback%29%29
         
         ;::::::::::::::::;
         ;:: Properties ::;
@@ -441,20 +457,11 @@ It should then be very fast to load.
                  #;get-canvas
                  #;get-top-level-window)
 
-        ;; filename: path?
-  	;; fmt: (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
-        (define/augment (on-load-file filename fmt)
-          (send drr-frame find-and-run-non-menu-scripts
-                'on-load-file
-                #:more-kwargs `((#:hook-editor . ,this)
-                                (#:load-filename . ,filename)
-                                (#:format . ,fmt))))
-        
         (define/augment (after-load-file success?)
+          (when success?
             (send drr-frame find-and-run-non-menu-scripts
                   'after-load-file
-                  #:more-kwargs `((#:hook-editor . ,this)
-                                  (#:success? . ,success?))))
+                  #:more-kwargs `((#:hook-editor . ,this)))))
 
         ;; filename : path?
   	;; format :  (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
@@ -462,14 +469,14 @@ It should then be very fast to load.
           (send drr-frame find-and-run-non-menu-scripts
                 'on-save-file
                 #:more-kwargs `((#:hook-editor . ,this)
-                                (#:load-filename . ,filename)
+                                (#:save-filename . ,filename)
                                 (#:format . ,fmt))))
         
         (define/augment (after-save-file success?)
-          (send drr-frame find-and-run-non-menu-scripts
+          (when success?
+            (send drr-frame find-and-run-non-menu-scripts
                   'after-save-file
-                  #:more-kwargs `((#:hook-editor . ,this)
-                                  (#:success? . ,success?))))
+                  #:more-kwargs `((#:hook-editor . ,this)))))
 
         #;(define/override (on-focus on?) #f)
 
@@ -501,7 +508,7 @@ It should then be very fast to load.
          (define/augment (on-close)
            (send drr-frame find-and-run-non-menu-scripts
                  'on-tab-close
-                 #:more-kwargs `((#:hook-tab . ,this))))
+                 #:more-kwargs `((#:tab . ,this))))
          (super-new)))
 
     ; If an exception is raised during these two phases, DrRacket displays 
