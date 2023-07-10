@@ -279,7 +279,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;:: Some hooks ::;
         ;::::::::::::::::;
 
-
         ;; NOTICE: If new define/pubment methods are added in drracket/private/unit.rkt,
         ;; then these methods must be declared also in drracket/private/interface.rkt
 
@@ -304,7 +303,10 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; Specialized to only when a new empty tab is created.
         ;; For loading a file, see `on-load-file`.
         (define/augment (after-create-new-tab tab filename start-pos end-pos)
-          (unless filename
+          (if filename
+            (find-and-run-non-menu-scripts 'after-open-file-in-new-tab
+                                           #:more-kwargs `((#:tab . ,tab)
+                                                           (#:filename . ,filename)))  ; FIXME: change name or remove if duplicate with #:file
             (find-and-run-non-menu-scripts 'after-create-new-tab
                                            #:more-kwargs `((#:tab . ,tab)))))
 
