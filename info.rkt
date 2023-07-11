@@ -21,7 +21,7 @@
 (define drracket-tool-names  '("Quickscript"))
 (define drracket-tool-icons  '(#f))
 
-(define scribblings '(("scribblings/quickscript.scrbl" () (drracket-plugin) "quickscript")))
+(define scribblings '(("scribblings/quickscript.scrbl" () (tool) "quickscript")))
 
 (define compile-omit-paths
   '())
