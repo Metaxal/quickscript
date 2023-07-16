@@ -378,32 +378,30 @@ function.
 
 For example, the following hook displays a message box when a file is loaded in DrRacket:
  @racketblock[
- (define-hook on-load-file
-   (λ (#:file f #:hook-editor ed #:load-filename lf #:format fmt)
-     (message-box "on-load-file"
-                  (format "f: ~a lf: ~a fmt: ~a" f lf fmt))))]
-This hook is called whenever @method[editor<%> on-load-file] (from @racket[editor<%>]) is called,
-and the keyword arguments @racket[#:load-filename] and @racket[#:format] correspond
-to the arguments of @method[editor<%> on-load-file].
-The keyword @racket[#:hook-editor] corresponds to the editor for which the hook is called ---
-it may be different from the value from @racket[#:editor], which corresponds to the editor with the
-keyboard focus.
-The keyword @racket[#:file] is available to all hooks.
+ (define-hook after-load-file
+   (λ (#:file f #:in-new-tab? new-tab?)
+     (message-box "on-load-file" (format "f: ~a\n new-tab?: ~a" f new-tab?))))]
 
 DrRacket's frame is always available via the @racket[#:frame] keyword.
 
+@emph{Note: }
+While @emph{scripts} default keyword arguments always correspond to current tab (the one in focus),
+hooks may be called on other tabs.
+
 List of supported hooks, with the additional keywords within parentheses:
  @itemlist[
- @item{@racket[on-tab-close] @racket[(#:hook-tab)]: augments @method[drracket:unit:tab<%> on-close]}
- @item{@method[editor<%> on-load-file] @racket[(#:hook-editor #:load-filename #:format)]}
- @item{@method[editor<%> after-load-file] @racket[(#:hook-editor #:success?)]}
- @item{@method[editor<%> on-save-file] @racket[(#:hook-editor #:load-filename #:format)]}
- @item{@method[editor<%> after-save-file] @racket[(#:hook-editor #:success?)]}
- @item{@racket[after-create-new-tab ()] : called after @method[drracket:unit:frame<%> create-new-tab]}
- @item{@method[drracket:unit:frame<%> on-tab-change] @racket[(#:hook-editor #:tab-from #:tab-to)]}
- @item{@method[drracket:unit:frame% on-close] @racket[()] : called when DrRacket exits.}
- @item{@racket[on-startup] @racket[()]: called when DrRacket starts, but before the frame is shown. No
-  additional keyword argument.}
+ @item{@racket[after-load-file] @racket[(#:in-new-tab?)] :
+   called after a file is loaded in an existing tab or in a new tab.}
+ @item{@racket[on-save-file] @racket[(#:save-filename #:format)] :
+   called before the file is saved.}
+ @item{@racket[after-save-file] @racket[()] : called after a file is saved.}
+ @item{@racket[after-create-new-tab ()] : called when a new tab is created.}
+ @item{@racket[on-tab-change] @racket[(#:tab-from #:tab-to)] :
+  called when the keyboard focus changes from @racket[#:tab-from] to @racket[#:tab-to].}
+ @item{@racket[on-tab-close] @racket[(#:tab)]:
+   called before the tab is closed.}
+ @item{@racket[on-startup] @racket[()]: called when DrRacket starts, but before the frame is shown.}
+ @item{@racket[on-close] @racket[()] : called when a DrRacket frame is closed.}
  ]
 }
 

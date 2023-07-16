@@ -189,7 +189,10 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           (set! namespace-dict (make-hash)))
 
         ;; f: path?
-        (define/private (run-script props #:more-kwargs [more-kwargs '()])
+        (define/private (run-script props
+                                    #:tab [tab #f]
+                                    #:editor [editor #f]
+                                    #:more-kwargs [more-kwargs '()])
           (define name         (prop-dict-ref props 'name))
           (define fpath        (prop-dict-ref props 'filepath))
           (define output-to    (prop-dict-ref props 'output-to))
@@ -198,11 +201,19 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ; For frame:text% :
           ;(define text (send frame get-editor))
           ; For DrRacket:
-          (define text (get-the-text-editor))
+          (set! tab (or tab (send this get-current-tab)))
+          (set! editor
+            (or editor
+                (if hook?
+                  (send tab get-defs)
+                  (get-the-text-editor))))
+          (define defs (send tab get-defs))
+          (define ints (send tab get-ints))
           (define str (and (not hook?) ; avoid unnecessary computation
-                           (send text get-text
-                                 (send text get-start-position)
-                                 (send text get-end-position))))
+                           (send editor get-text
+                                 (send editor get-start-position)
+                                 (send editor get-end-position))))
+          
           ; Create a namespace for the script:
           (define (make-script-namespace)
             (define ns (make-base-empty-namespace))
@@ -217,11 +228,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                 (dict-ref! namespace-dict fpath make-script-namespace)
                 (make-script-namespace)))
 
-          (define file-str (path->string fpath))
-          (define ed-file (send (get-definitions-text) get-filename))
           (define script-result
             (with-error-message-box
-                (format "Run: Error in script file ~s:\n" file-str)
+                (format "Run: Error in script file ~s:\n" (path->string fpath))
               #:error-value #f
               
               ; See HelpDesk for "Manipulating namespaces"
@@ -229,13 +238,14 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                          ; Ensure the script is compiled for the correct version of Racket
                          (compile-user-script fpath)
                          (dynamic-require fpath name))]
-                    [kw-dict (append
-                              `((#:definitions   . ,(get-definitions-text))
-                                (#:interactions  . ,(get-interactions-text))
-                                (#:editor        . ,text)
-                                (#:file          . ,ed-file)
-                                (#:frame         . ,this))
-                              more-kwargs)])
+                    [kw-dict
+                     (append
+                      `((#:definitions   . ,defs)
+                        (#:interactions  . ,ints)
+                        (#:editor        . ,editor)
+                        (#:file          . ,(send defs get-filename))
+                        (#:frame         . ,this))
+                      more-kwargs)])
                 ;; f is applied *outside* the created namespace so as to make
                 ;; all features of drracket's frame available.
                 ;; If it were evaluated inside ns, (send fr open-in-new-tab <some-file>)
@@ -260,7 +270,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                     (send new-defs select-all) ; get the newly created text
                     (insert-to-text new-defs script-result)]
                    [(selection)
-                    (insert-to-text text script-result)]
+                    (insert-to-text editor script-result)]
                    [(message-box)
                     (when (string? script-result)
                       (message-box "Output" script-result this))]
@@ -271,9 +281,12 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; Runs *all* scripts with the given name (identifier) that are *not* menu items.
         ;; TODO: Rename #:label to #:menu-label or #:entry-label for clarity?
         ;; Notice: the result is #<void>, and the results from the scripts are discarded.
-        (define/public (find-and-run-non-menu-scripts name #:more-kwargs [more-kwargs '()])
+        (define/public (find-and-run-hook-scripts name
+                                                  #:tab [tab #f]
+                                                  #:editor [editor #f]
+                                                  #:more-kwargs [more-kwargs '()])
           (for ([props (in-list (hash-ref property-dicts name '()))])
-            (run-script props #:more-kwargs more-kwargs)))
+            (run-script props #:tab tab #:editor editor #:more-kwargs more-kwargs)))
 
         ;::::::::::::::::;
         ;:: Some hooks ::;
@@ -284,31 +297,41 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
         ;; TODO: Should we have an `after-tab-change`?
         (define/augment (on-tab-change tab-from tab-to)
-          (find-and-run-non-menu-scripts 'on-tab-change
-                                         #:more-kwargs `((#:tab-from . ,tab-from)
-                                                         (#:tab-to   . ,tab-to))))
+          (queue-callback
+           (λ () (find-and-run-hook-scripts 'on-tab-change
+                                            #:more-kwargs `((#:tab-from . ,tab-from)
+                                                            (#:tab-to   . ,tab-to))))))
 
         (define/augment (on-close)
-          (find-and-run-non-menu-scripts 'on-close #:more-kwargs '()))
+          (queue-callback
+           (λ () (find-and-run-hook-scripts 'on-close #:more-kwargs '()))))
 
         ;; At this stage, the frame is not shown yet
         (define/public (on-startup)
-          (find-and-run-non-menu-scripts 'on-startup #:more-kwargs '()))
+          (queue-callback
+           (λ () (find-and-run-hook-scripts 'on-startup #:more-kwargs '()))))
 
         (define/augment (after-create-new-drracket-frame show?)
           (queue-callback ; TODO: should this be here or in drracket:unit?
-           (λ () (find-and-run-non-menu-scripts 'after-create-new-drracket-frame
+           (λ () (find-and-run-hook-scripts 'after-create-new-drracket-frame
                                                 #:more-kwargs `((#:show? . ,show?))))))
 
         ;; Specialized to only when a new empty tab is created.
         ;; For loading a file, see `on-load-file`.
+        ;; If `filename` is not #f, is almost redundant with `on-load-file`, except that the latter
+        ;; is also called (I think) when loading a file in an existing tab.
         (define/augment (after-create-new-tab tab filename start-pos end-pos)
-          (if filename
-            (find-and-run-non-menu-scripts 'after-open-file-in-new-tab
-                                           #:more-kwargs `((#:tab . ,tab)
-                                                           (#:filename . ,filename)))  ; FIXME: change name or remove if duplicate with #:file
-            (find-and-run-non-menu-scripts 'after-create-new-tab
-                                           #:more-kwargs `((#:tab . ,tab)))))
+          (queue-callback
+           (λ ()
+             ;; #:tab and #:filename are redundant. The same information is already
+             ;; available via #:file and #:definitions in the script function.
+             (if filename
+               (find-and-run-hook-scripts 'after-load-file
+                                          #:tab tab
+                                          #:more-kwargs `((#:in-new-tab? . #t)))
+               (find-and-run-hook-scripts 'after-create-new-tab
+                                          #:tab tab
+                                          #:more-kwargs `())))))
 
         ;; TODO: Add a hook for execute-callback. Maybe add a pubment method in drr:unit:frame
         ;; that matches the hook.
@@ -460,25 +483,39 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                  #;get-top-level-window)
 
         (define/augment (after-load-file success?)
-          (when success?
-            (send drr-frame find-and-run-non-menu-scripts
-                  'after-load-file
-                  #:more-kwargs `((#:hook-editor . ,this)))))
+          ;; If the current definitions is not this, this means the file is loaded
+          ;; in a new text. In this case, it it better to let `after-create-new-tab`
+          ;; trigger an event, because it happens after the on-tab-change event,
+          ;; that is, the #:definitions is the correct one.
+          (when (and success?
+                     (eq? this (send drr-frame get-definitions-text)))
+            ;; Callback is queue so it happens *after* the file is effectively loaded into the
+            ;; editor.
+            (queue-callback
+             (λ () (send drr-frame find-and-run-hook-scripts
+                         'after-load-file
+                         ;#:tab  ; no need because we check above it's always the current one
+                         #:more-kwargs `((#:in-new-tab? . #f)))))))
 
         ;; filename : path?
   	;; format :  (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
         (define/augment (on-save-file filename fmt)
-          (send drr-frame find-and-run-non-menu-scripts
+          ;; No queue-callback to ensure modifications to the file are performed immediately.
+          (send drr-frame find-and-run-hook-scripts
                 'on-save-file
-                #:more-kwargs `((#:hook-editor . ,this)
-                                (#:save-filename . ,filename)
+                #:tab (send this get-tab) ; TODO: What if `this` is interactions?
+                #:editor this
+                #:more-kwargs `((#:save-filename . ,filename)
                                 (#:format . ,fmt))))
         
         (define/augment (after-save-file success?)
           (when success?
-            (send drr-frame find-and-run-non-menu-scripts
-                  'after-save-file
-                  #:more-kwargs `((#:hook-editor . ,this)))))
+            (queue-callback
+             (λ () (send drr-frame find-and-run-hook-scripts
+                         'after-save-file
+                         #:tab (send this get-tab) ; TODO: What if `this` is interactions?
+                         #:editor this
+                         #:more-kwargs `())))))
 
         #;(define/override (on-focus on?) #f)
 
@@ -491,7 +528,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         #;(define/override (on-default-char kw-evt) #f)
         #;(define/override (on-default-event ms-evt) #f)
 
-        ;; TODO:
+        ;; TODO maybe:
         #;can-load-file? #;can-save-file?
         #;on-edit-sequence #;after-edit-sequence
         #;on-scroll-to #;after-scroll-to
@@ -508,8 +545,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
      (define tab-mixin
        (mixin (drracket:unit:tab<%>) ()
          (define/augment (on-close)
-           (send drr-frame find-and-run-non-menu-scripts
+           (send drr-frame find-and-run-hook-scripts
                  'on-tab-close
+                 #:tab this
                  #:more-kwargs `((#:tab . ,this))))
          (super-new)))
 
