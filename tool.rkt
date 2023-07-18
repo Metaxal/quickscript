@@ -106,8 +106,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
     ;=== Frame mixin ===;
     ;===================;
 
-    (define drr-frame #f)
-
     (define script-menu-mixin
       (mixin (drracket:unit:frame<%>) ()
         (super-new)
@@ -125,8 +123,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           (if (send defed has-focus?)
               defed
               (get-interactions-text)))
-
-        (set! drr-frame this)
 
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
@@ -157,7 +153,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
             (send this open-in-new-tab file)))
 
         (define/private (open-script)
-          (define file (get-file "Open a script" drr-frame user-script-dir #f #f '()
+          (define file (get-file "Open a script" this user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
 
@@ -475,12 +471,8 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
      (define text-mixin
       (mixin ((class->interface text%)) ()
  
-        (inherit #;begin-edit-sequence
-                 #;end-edit-sequence
-                 #;insert
-                 #;get-text
-                 #;get-canvas
-                 #;get-top-level-window)
+        (define (get-drr-frame)
+          (send (send this get-tab) get-frame))
 
         (define/augment (after-load-file success?)
           ;; If the current definitions is not this, this means the file is loaded
@@ -488,11 +480,11 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ;; trigger an event, because it happens after the on-tab-change event,
           ;; that is, the #:definitions is the correct one.
           (when (and success?
-                     (eq? this (send drr-frame get-definitions-text)))
+                     (eq? this (send (get-drr-frame) get-definitions-text)))
             ;; Callback is queue so it happens *after* the file is effectively loaded into the
             ;; editor.
             (queue-callback
-             (λ () (send drr-frame find-and-run-hook-scripts
+             (λ () (send (get-drr-frame) find-and-run-hook-scripts
                          'after-load-file
                          ;#:tab  ; no need because we check above it's always the current one
                          #:more-kwargs `((#:in-new-tab? . #f)))))))
@@ -501,7 +493,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
   	;; format :  (or/c 'guess 'same 'copy 'standard 'text 'text-force-cr)
         (define/augment (on-save-file filename fmt)
           ;; No queue-callback to ensure modifications to the file are performed immediately.
-          (send drr-frame find-and-run-hook-scripts
+          (send (get-drr-frame) find-and-run-hook-scripts
                 'on-save-file
                 #:tab (send this get-tab) ; TODO: What if `this` is interactions?
                 #:editor this
@@ -511,7 +503,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (define/augment (after-save-file success?)
           (when success?
             (queue-callback
-             (λ () (send drr-frame find-and-run-hook-scripts
+             (λ () (send (get-drr-frame) find-and-run-hook-scripts
                          'after-save-file
                          #:tab (send this get-tab) ; TODO: What if `this` is interactions?
                          #:editor this
@@ -544,8 +536,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
      (define tab-mixin
        (mixin (drracket:unit:tab<%>) ()
+         (inherit get-frame)
          (define/augment (on-close)
-           (send drr-frame find-and-run-hook-scripts
+           (send (get-frame) find-and-run-hook-scripts
                  'on-tab-close
                  #:tab this
                  #:more-kwargs `((#:tab . ,this))))
