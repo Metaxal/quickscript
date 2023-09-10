@@ -61,7 +61,7 @@
                                                (~datum clipboard)
                                                #f)))
                               #:defaults ([output-to-val #'selection]))
-                   (~optional (~seq #:os-types 
+                   (~optional (~seq #:os-types
                                     (~and os-types-val
                                           [(~alt (~optional (~datum unix))
                                                  (~optional (~datum macosx))
@@ -92,31 +92,52 @@
                               (~bind [persistent? #'#t]))
                         #:defaults ([persistent? #'#f])))))
 
+(begin-for-syntax
+  (define known-hook-ids
+    '(after-load-file
+      on-save-file
+      after-save-file
+      after-create-new-tab
+      on-tab-change
+      on-tab-close
+      on-startup
+      on-close))
+  (define known-hook-ids-str
+    (apply string-append
+           (for*/list ([id known-hook-ids]
+                       [s (in-list (list "  " (symbol->string id) "\n"))])
+             s))))
+
 (define-syntax (define-hook stx)
   (syntax-parse stx
-    [(_ proc (~alt (~optional (~seq #:help-string help-string-val)
-                              #:defaults ([help-string-val #'""]))
-                   #;persistent:maybe-persistent
-                   (~optional (~and #:persistent
-                                    (~bind [persist? #'#t]))
-                              #:defaults  ([persist? #'#f]))
-                   (~optional (~seq #:output-to
-                                    (~and output-to-val
-                                          (~or (~datum selection)
-                                               (~datum new-tab)
-                                               (~datum message-box)
-                                               (~datum clipboard)
-                                               #f)))
-                              #:defaults ([output-to-val #'selection]))
-                   (~optional (~seq #:os-types 
-                                    (~and os-types-val
-                                          [(~alt (~optional (~datum unix))
-                                                 (~optional (~datum macosx))
-                                                 (~optional (~datum windows)))
-                                           ...]))
-                              #:defaults ([os-types-val #'(unix macosx windows)])))
+    [(_ proc:id
+        (~alt (~optional (~seq #:help-string help-string-val)
+                         #:defaults ([help-string-val #'""]))
+              #;persistent:maybe-persistent
+              (~optional (~and #:persistent
+                               (~bind [persist? #'#t]))
+                         #:defaults  ([persist? #'#f]))
+              (~optional (~seq #:output-to
+                               (~and output-to-val
+                                     (~or (~datum selection)
+                                          (~datum new-tab)
+                                          (~datum message-box)
+                                          (~datum clipboard)
+                                          #f)))
+                         #:defaults ([output-to-val #'selection]))
+              (~optional (~seq #:os-types
+                               (~and os-types-val
+                                     [(~alt (~optional (~datum unix))
+                                            (~optional (~datum macosx))
+                                            (~optional (~datum windows)))
+                                      ...]))
+                         #:defaults ([os-types-val #'(unix macosx windows)])))
         ...
         rhs:expr)
+     #:fail-when (and (not (memq (syntax-e #'proc)
+                                 known-hook-ids))
+                      #'proc)
+     (string-append "Invalid hook name.\n Valid names:\n" known-hook-ids-str)
      (add-submod-content!
       #`(begin
           (provide proc)
