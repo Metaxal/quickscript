@@ -101,6 +101,7 @@
       on-tab-change
       on-tab-close
       on-startup
+      after-create-new-drracket-frame
       on-close))
   (define known-hook-ids-str
     (apply string-append

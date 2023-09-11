@@ -44,7 +44,7 @@ Quickscript is installed automatically with DrRacket, so you don't need to do an
 
 You can use Quickscript on its own, but the
 @hyperlink["https://pkgs.racket-lang.org/package/quickscript-extra"]{Quickscript Extra}
-package has a wide range of useful scripts as well as some 
+package has a wide range of useful scripts as well as some
 example scripts intended for customisation by the user.
 
 To install it, either look for @tt{quickscript-extra} in the DrRacket menu @gui{File|Package Manager},
@@ -72,7 +72,7 @@ In the .rkt file that just opened in DrRacket, modify the @racket[define-script]
 @(racketblock
   (define-script reverse-selection
     #:label "Reverse"
-    (λ (selection) 
+    (λ (selection)
       (list->string (reverse (string->list selection))))))
 and save the file.
 
@@ -109,7 +109,7 @@ When all of them are used, a script can look like this:
                   #:editor ed
                   #:definitions defs
                   #:interactions ints
-                  #:file f) 
+                  #:file f)
       "Hello world!")))
 
 Note that the arguments of the properties are literals, not expressions, so they must @italic{not} be quoted.
@@ -195,7 +195,7 @@ Here is the meaning of the keyword arguments:
     (define-script current-file-example
       #:label "Current file example"
       #:output-to message-box
-      (λ (selection #:file f) 
+      (λ (selection #:file f)
         (string-append "File: " (if f (path->string f) "no-file")
                        "\nSelection: " selection))))
 
@@ -232,7 +232,7 @@ Here is the meaning of the keyword arguments:
     (define-script number-tabs
       #:label "Number of tabs"
       #:output-to message-box
-      (λ (selection #:frame fr) 
+      (λ (selection #:frame fr)
         (format "Number of tabs in DrRacket: ~a"
                 (send fr get-tab-count)))))
  }]
@@ -242,7 +242,7 @@ but not additional mandatory arguments. For example:
 @(racketblock
     (define-script append-plop
       #:label "Append plop"
-      (λ (selection [more ""] #:even-more [even-more ""]) 
+      (λ (selection [more ""] #:even-more [even-more ""])
         (string-append selection "_plop" more even-more)))
 
     (define-script append-plop-plip
@@ -304,7 +304,7 @@ There are some additional properties:
       #:label "Persistent counter"
       #:persistent
       #:output-to message-box
-      (λ (selection) 
+      (λ (selection)
         (set! count (+ count 1))
         (number->string count))))
 
@@ -325,12 +325,12 @@ There are some additional properties:
   @;See a more detailed example in @example-link{persistent-counter.rkt}.
 
   }
- 
+
  @item{@racket[#:os-types (listof (one-of/c unix macosx windows))]
-        
+
   This keyword must be followed by a list of supported os-types.
   Defaults to all types, i.e. @racket[(unix macosx windows)].
-  
+
  }]
 
 If changes are made to these properties, the Scripts menu will probably need to be reloaded
@@ -398,9 +398,11 @@ List of supported hooks, with the additional keywords within parentheses:
  @item{@racket[after-create-new-tab ()] : called when a new tab is created.}
  @item{@racket[on-tab-change] @racket[(#:tab-from #:tab-to)] :
   called when the keyboard focus changes from @racket[#:tab-from] to @racket[#:tab-to].}
- @item{@racket[on-tab-close] @racket[(#:tab)]:
+ @item{@racket[on-tab-close] @racket[(#:tab)] :
    called before the tab is closed.}
- @item{@racket[on-startup] @racket[()]: called when DrRacket starts, but before the frame is shown.}
+ @item{@racket[on-startup] @racket[()] : called when DrRacket starts, but before the frame is shown.}
+ @item{@racket[after-create-new-drracket-frame] @racket[(#:show)]: called after a new DrRacket frame
+   is created.}
  @item{@racket[on-close] @racket[()] : called when a DrRacket frame is closed.}
  ]
 }
