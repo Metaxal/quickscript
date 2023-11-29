@@ -8,3 +8,5 @@
 (begin-for-syntax
   (define-runtime-path script-dir "scripts")
   (add-third-party-script-directory! script-dir))
+
+;; to be removed
