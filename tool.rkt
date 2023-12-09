@@ -293,12 +293,14 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
         ;; TODO: Should we have an `after-tab-change`?
         (define/augment (on-tab-change tab-from tab-to)
+          (inner (void) on-tab-change tab-from tab-to)
           (queue-callback
            (λ () (find-and-run-hook-scripts 'on-tab-change
                                             #:more-kwargs `((#:tab-from . ,tab-from)
                                                             (#:tab-to   . ,tab-to))))))
 
         (define/augment (on-close)
+          (inner (void) on-close)
           (queue-callback
            (λ () (find-and-run-hook-scripts 'on-close #:more-kwargs '()))))
 
@@ -308,6 +310,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            (λ () (find-and-run-hook-scripts 'on-startup #:more-kwargs '()))))
 
         (define/augment (after-create-new-drracket-frame show?)
+          (inner (void) after-create-new-drracket-frame show?)
           (queue-callback ; TODO: should this be here or in drracket:unit?
            (λ () (find-and-run-hook-scripts 'after-create-new-drracket-frame
                                                 #:more-kwargs `((#:show? . ,show?))))))
@@ -317,6 +320,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; If `filename` is not #f, is almost redundant with `on-load-file`, except that the latter
         ;; is also called (I think) when loading a file in an existing tab.
         (define/augment (after-create-new-tab tab filename start-pos end-pos)
+          (inner (void) after-create-new-tab tab filename start-pos end-pos)
           (queue-callback
            (λ ()
              ;; #:tab and #:filename are redundant. The same information is already
@@ -509,16 +513,16 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                          #:editor this
                          #:more-kwargs `())))))
 
-        #;(define/override (on-focus on?) #f)
+        #;(define/override (on-focus on?) (super on-focus on?) #f)
 
-        #;(define/augment (on-insert start len) #f)
-        #;(define/augment (after-insert start len) #f)
+        #;(define/augment (on-insert start len) (inner (void) on-insert start len) #f)
+        #;(define/augment (after-insert start len) (inner (void) after-insert start len) #f)
  
-        #;(define/augment (on-delete start len) #f)
-        #;(define/augment (after-delete start len) #f)
+        #;(define/augment (on-delete start len) (inner (void) on-delete start len) #f)
+        #;(define/augment (after-delete start len) (inner (void) after-delete start len) #f)
 
-        #;(define/override (on-default-char kw-evt) #f)
-        #;(define/override (on-default-event ms-evt) #f)
+        #;(define/override (on-default-char kw-evt) (super on-defeault-char kw-evt) #f)
+        #;(define/override (on-default-event ms-evt) (super on-default-event ms-evt) #f)
 
         ;; TODO maybe:
         #;can-load-file? #;can-save-file?
@@ -538,6 +542,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
        (mixin (drracket:unit:tab<%>) ()
          (inherit get-frame)
          (define/augment (on-close)
+           (inner (void) on-close)
            (send (get-frame) find-and-run-hook-scripts
                  'on-tab-close
                  #:tab this
