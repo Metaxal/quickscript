@@ -157,7 +157,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
 
-                
+
         (define/private (open-help)
           (perform-search "quickscript")
           ; Does not seem to work well.
@@ -209,7 +209,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                            (send editor get-text
                                  (send editor get-start-position)
                                  (send editor get-end-position))))
-          
+
           ; Create a namespace for the script:
           (define (make-script-namespace)
             (define ns (make-base-empty-namespace))
@@ -228,7 +228,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
             (with-error-message-box
                 (format "Run: Error in script file ~s:\n" (path->string fpath))
               #:error-value #f
-              
+
               ; See HelpDesk for "Manipulating namespaces"
               (let ([f (parameterize ([current-namespace ns])
                          ; Ensure the script is compiled for the correct version of Racket
@@ -336,7 +336,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; TODO: Add a hook for execute-callback. Maybe add a pubment method in drr:unit:frame
         ;; that matches the hook.
         ;;https://docs.racket-lang.org/tools/drracket_unit.html#%28meth._%28%28%28lib._drracket%2Ftool-lib..rkt%29._drracket~3aunit~3aframe~25%29._execute-callback%29%29
-        
+
         ;::::::::::::::::;
         ;:: Properties ::;
         ;::::::::::::::::;
@@ -380,7 +380,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
            (load-properties!)
-           
+
            (let* ([property-dicts
                    ;; Keep only menu entries
                    (hash-ref property-dicts #f '())]
@@ -474,7 +474,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
      (define text-mixin
       (mixin ((class->interface text%)) ()
- 
+
         (define (get-drr-frame)
           (send (send this get-tab) get-frame))
 
@@ -503,7 +503,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                 #:editor this
                 #:more-kwargs `((#:save-filename . ,filename)
                                 (#:format . ,fmt))))
-        
+
         (define/augment (after-save-file success?)
           (when success?
             (queue-callback
@@ -517,7 +517,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
         #;(define/augment (on-insert start len) (inner (void) on-insert start len) #f)
         #;(define/augment (after-insert start len) (inner (void) after-insert start len) #f)
- 
+
         #;(define/augment (on-delete start len) (inner (void) on-delete start len) #f)
         #;(define/augment (after-delete start len) (inner (void) after-delete start len) #f)
 
@@ -531,7 +531,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         #;on-change
         #;on-display-size
         #;on-snip-modified
- 
+
         (super-new)))
 
      ;=================;
@@ -549,15 +549,18 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                  #:more-kwargs `((#:tab . ,this))))
          (super-new)))
 
-    ; If an exception is raised during these two phases, DrRacket displays 
-    ; the error in a message box and deactivates the plugin before continuing. 
+    ; If an exception is raised during these two phases, DrRacket displays
+    ; the error in a message box and deactivates the plugin before continuing.
     (define (phase1) (void))
     (define (phase2) (void))
+
+    ; Make sure the user-script dir exists and if not populate it with default scripts.
+    (ensure-user-script-dir-exists!)
 
     ; Silently recompile for the new version if necessary, at the start up of DrRacket.
     ; This must be done before building the menus.
     ; The compilation is done at this point so that the splash screen doesn't disappear,
-    ; but the message box will be shown after the DrRacket frame is shown up.    
+    ; but the message box will be shown after the DrRacket frame is shown up.
     (define init-compile-exn-gobbler (compile-library))
 
     ;; Search for "Extending the Existing DrRacket Classes" to see what can be extended:

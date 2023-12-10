@@ -2,8 +2,10 @@
 (require racket/contract
          racket/dict
          racket/format
+         racket/file
          racket/path
-         compiler/compilation-path         
+         racket/runtime-path
+         compiler/compilation-path
          compiler/cm
          "exn-gobbler.rkt")
 
@@ -91,7 +93,7 @@
 ;; ("" if no text is selected), or `#f` to leave the selection as is.
 (define-script @proc-name
   #:label "@label"
-  (λ (selection) 
+  (λ (selection)
     #f))
 })
 
@@ -121,7 +123,7 @@
 (define (get-property-dicts script-filepath)
   ; Ensure the script is compiled for the correct version of Racket
   (compile-user-script script-filepath)
-  
+
   (define the-submod (make-submod-path script-filepath))
   (dynamic-require the-submod #f)
   (define-values (vars syntaxes) (module->exports the-submod))
@@ -171,6 +173,23 @@
   (check string=?
          help-str2
          help-str))
+
+;======================;
+;=== Initialization ===;
+;======================;
+
+(define-runtime-path qs-package-script-dir "scripts")
+
+;; If user-script-dir does not exist, create it and add some default scripts to it,
+;; from the quickscript package's script directory.
+(define (ensure-user-script-dir-exists!)
+  (unless (directory-exists? user-script-dir)
+    (make-directory* user-script-dir)
+    (for ([f (in-list (directory-list qs-package-script-dir #:build? #f))]
+          #:when (path-has-extension? f #".rkt"))
+      (define target (build-path user-script-dir f))
+      (unless (file-exists? target)
+        (copy-file (build-path qs-package-script-dir f) target)))))
 
 ;===================;
 ;=== Compilation ===;
