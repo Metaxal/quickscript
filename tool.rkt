@@ -86,7 +86,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 (define (property-dict-hook? props)
   (not (prop-dict-ref props 'label)))
 
-(define (insert-to-text text str)
+(define (text-insert text str)
   ; Inserts the text, possibly overwriting the selection:
   (send text begin-edit-sequence)
   (send text insert str)
@@ -264,9 +264,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                     (create-new-tab)
                     (define new-defs (get-definitions-text))
                     (send new-defs select-all) ; get the newly created text
-                    (insert-to-text new-defs script-result)]
+                    (text-insert new-defs script-result)]
                    [(selection)
-                    (insert-to-text editor script-result)]
+                    (text-insert editor script-result)]
                    [(message-box)
                     (when (string? script-result)
                       (message-box "Output" script-result this))]
@@ -554,8 +554,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
     (define (phase1) (void))
     (define (phase2) (void))
 
-    ; Make sure the user-script dir exists and if not populate it with default scripts.
-    (ensure-user-script-dir-exists!)
 
     ; Silently recompile for the new version if necessary, at the start up of DrRacket.
     ; This must be done before building the menus.

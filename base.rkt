@@ -174,23 +174,6 @@
          help-str2
          help-str))
 
-;======================;
-;=== Initialization ===;
-;======================;
-
-(define-runtime-path qs-package-script-dir "scripts")
-
-;; If user-script-dir does not exist, create it and add some default scripts to it,
-;; from the quickscript package's script directory.
-(define (ensure-user-script-dir-exists!)
-  (unless (directory-exists? user-script-dir)
-    (make-directory* user-script-dir)
-    (for ([f (in-list (directory-list qs-package-script-dir #:build? #f))]
-          #:when (path-has-extension? f #".rkt"))
-      (define target (build-path user-script-dir f))
-      (unless (file-exists? target)
-        (copy-file (build-path qs-package-script-dir f) target)))))
-
 ;===================;
 ;=== Compilation ===;
 ;===================;
