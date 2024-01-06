@@ -446,33 +446,15 @@ or on @hyperlink["http://pasterack.org/"]{PasteRack}, and share the link.
 A user can then copy/paste the contents into a new script.
 Don't forget to include a permissive license such as MIT/Apache 2.
 
-
-The @emph{best} way to distribute scripts is by creating a package---the user only has to install
-the package.
-Assuming your scripts are stored in the @racket["scripts"] subdirectory,
-include a file (say @racket["register.rkt"]) at the root directory of
-the package containing the following code:
-@margin-note{If the file @racket["register.rkt"] is not at the root,
-                         the runtime-path needs to be modified accordingly.}
-@codeblock|{
-#lang racket/base
-(require (for-syntax racket/base
-                     racket/runtime-path
-                     (only-in quickscript/library
-                              add-third-party-script-directory!)))
-
-;; This file is going to be called during setup and will automatically
-;; register the scripts subdirectory in quickscript's library.
-(begin-for-syntax
-  (define-runtime-path script-dir "scripts")
-  (add-third-party-script-directory! script-dir))
-  }|
-
-You can see an example with
-@hyperlink["https://github.com/Metaxal/quickscript-extra"]{quickscript-extra}.
-
-Don't forget to register your package on the
-@hyperlink["https://pkgs.racket-lang.org/"]{Racket server}.
+@; The @emph{best} way to distribute scripts is by creating a package---the user only has to install
+@; the package.
+@; ... but the current mechanism is broken, see https://github.com/Metaxal/quickscript/issues/79 ...
+@;
+@; You can see an example with
+@; @hyperlink["https://github.com/Metaxal/quickscript-extra"]{quickscript-extra}.
+@;
+@; Don't forget to register your package on the
+@; @hyperlink["https://pkgs.racket-lang.org/"]{Racket server}.
 
 
 @section{License}
