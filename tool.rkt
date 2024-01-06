@@ -2,7 +2,7 @@
 (require
   (for-syntax racket/base) ; for help menu
   drracket/tool ; necessary to build a drracket plugin
-  framework ; for preferences (too heavy a package?)
+  framework
   help/search
   net/sendurl ; for the help menu
   racket/class
@@ -12,6 +12,7 @@
   racket/list
   racket/string
   racket/unit
+  setup/getinfo
   "private/base.rkt"
   "private/exn-gobbler.rkt"
   (prefix-in lib: "private/library.rkt")
@@ -32,8 +33,8 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
 (define orig-display-handler #f) ; will be set in the unit.
 
-(define (user-script-files #:exclude? [exclude? #t])
-  (lib:all-files (lib:load library-file) #:exclude? exclude?))
+(define (user-script-files)
+  (lib:all-enabled-scripts (lib:load)))
 
 (define (error-message-box str e)
   (define sp (open-output-string))
@@ -379,6 +380,8 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            (set! menu-reload-count (add1 menu-reload-count))
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
+           (reset-relevant-directories-state!)
+           
            (load-properties!)
 
            (let* ([property-dicts

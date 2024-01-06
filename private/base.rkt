@@ -25,9 +25,9 @@
          path-string=?
          script-file?
          user-script-dir
+         quickscript-dir
          get-property-dicts
-         path-string->string
-         library-file)
+         path-string->string)
 
 (module+ test
   (require rackunit))
@@ -41,9 +41,6 @@
 (define quickscript-dir
   (or (getenv "PLTQUICKSCRIPTDIR")
       (build-path (find-system-path 'pref-dir) "quickscript")))
-
-(define library-file
-  (build-path quickscript-dir "library.rktd"))
 
 (define user-script-dir
   (build-path quickscript-dir "user-scripts"))
