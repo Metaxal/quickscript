@@ -4,12 +4,30 @@
          racket/format
          racket/file
          racket/path
-         racket/runtime-path
          compiler/compilation-path
          compiler/cm
          "exn-gobbler.rkt")
 
-(provide (all-defined-out))
+(provide log-quickscript-fatal
+         log-quickscript-error
+         log-quickscript-warning
+         log-quickscript-info
+         log-quickscript-debug
+         quickscript-logger
+         get-script-help-string
+         make-simple-script-string
+         prop-dict-ref
+         compile-user-scripts
+         compile-user-script
+         this-os-type
+         time-info
+         path-free?
+         path-string=?
+         script-file?
+         user-script-dir
+         get-property-dicts
+         path-string->string
+         library-file)
 
 (module+ test
   (require rackunit))
@@ -39,7 +57,10 @@
       (path->string p-str)))
 
 (define (script-file? f)
-  (equal? (path-get-extension f) #".rkt"))
+  (and (equal? (path-get-extension f) #".rkt")
+       (not (equal? f (if (string? f)
+                          "info.rkt"
+                          (string->path-element "info.rkt"))))))
 
 (define (path-string=? dir1 dir2)
   (string=? (path-string->string dir1)

@@ -12,10 +12,10 @@
   racket/list
   racket/string
   racket/unit
-  "base.rkt"
-  "exn-gobbler.rkt"
-  (prefix-in lib: "library.rkt")
-  "library-gui.rkt")
+  "private/base.rkt"
+  "private/exn-gobbler.rkt"
+  (prefix-in lib: "private/library.rkt")
+  "private/library-gui.rkt")
 (provide tool@)
 
 #|

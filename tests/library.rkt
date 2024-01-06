@@ -1,8 +1,8 @@
 #lang racket
 ;; Tests n a separate file to test the contracts too.
 (require rackunit
-         quickscript/base
-         quickscript/library)
+         "../private/base.rkt"
+         "../private/library.rkt")
 
 (define my-lib (new-library))
 (check set=?
