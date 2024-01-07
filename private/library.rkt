@@ -63,6 +63,7 @@
                 (setalw)))
 
 ;; a wrapper with installation info and some caches
+;; this is NOT thread-safe, due to hash mutation
 (struct library (lib collects-dirs setup-cache mp-cache pretty-cache)
   #:transparent)
 (define (library-data->library lib)

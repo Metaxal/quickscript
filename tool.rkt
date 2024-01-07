@@ -381,7 +381,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
            (reset-relevant-directories-state!)
-           
+
            (load-properties!)
 
            (let* ([property-dicts
