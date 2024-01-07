@@ -191,7 +191,7 @@
               (set->list (library-collects-dirs lib)))))
 
 (define (directory->enabled+file lib dir)
-  (define data (library-data lib))
+  (define data (library-lib lib))
   (define enabled?
     (cond
       [(hash-ref (library-data-table data) dir #f)
@@ -217,7 +217,7 @@
     (build-path dir (cdr enabled+file))))
 
 (define (removable-directory? lib dir)
-  (and (hash-has-key? (library-lib (library-data-table lib)) dir)
+  (and (hash-has-key? (library-data-table (library-lib lib)) dir)
        (not (equal? user-script-dir dir))))
 
 (define (add-directory lib dir)
