@@ -126,11 +126,18 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
               (get-interactions-text)))
 
         (define/private (new-script)
+          (define (name-ok? name)
+            (and (non-empty-string? name)
+                 (string->path-element name 'false-on-non-element)
+                 (not (string-ci=? name "info"))))
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
                                            this
-                                           #:validate non-empty-string?
+                                           #f
+                                           ""
+                                           '(disallow-invalid)
+                                           #:validate name-ok?
                                            #:dialog-mixin frame:focus-table-mixin))
-          (when name
+          (when (and name (name-ok? name))
             (define filename (string-append (string-foldcase (string-replace name " " "-")) ".rkt"))
             (define file-path (build-path user-script-dir filename))
             (define proc-name (string-foldcase (string-replace name " " "-")))
