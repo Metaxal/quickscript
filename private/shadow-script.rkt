@@ -46,7 +46,7 @@
     (define props-dict (get-property-dicts f))
     (define funs (dict-keys props-dict))
     (string-append
-     (make-header f)
+     (make-header writable-module-path)
      "\n"
      (string-join
       (for/list ([props (in-list props-dict)])

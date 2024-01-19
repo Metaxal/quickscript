@@ -71,15 +71,15 @@
           (values #f #f #f)))
 
     (define (add-directory [dir #f])
-      (unless dir
-        (set! dir
-              (get-directory "Choose a script directory to add to the library"
-                             fr)))
-      (when dir
-        (save! (lib:add-directory the-lib dir))
-        (reload-dir-lb)
-        (send dir-lb set-datum-selection dir)
-        (dir-lb-select dir)))
+      (let* ([dir (or dir
+                      (get-directory "Choose a script directory to add to the library"
+                                     fr))]
+             [dir (and dir (path->complete-path (path->directory-path dir)))])
+        (when dir
+          (save! (lib:add-directory the-lib dir))
+          (reload-dir-lb)
+          (send dir-lb set-datum-selection dir)
+          (dir-lb-select dir))))
 
     (define (remove-directory dir)
       (save! (lib:remove-directory the-lib dir))

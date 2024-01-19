@@ -25,7 +25,7 @@
          path-string=?
          script-file?
          user-script-dir
-         quickscript-dir
+         deprecated-library-file
          get-property-dicts
          path-string->string)
 
@@ -37,13 +37,19 @@
 
 (define-logger quickscript)
 
-;; TODO: What if (find-system-path 'pref-dir) does not exist?
 (define quickscript-dir
-  (or (getenv "PLTQUICKSCRIPTDIR")
-      (build-path (find-system-path 'pref-dir) "quickscript")))
+  ;; not guaranteed to exist
+  (let ([env (getenv "PLTQUICKSCRIPTDIR")])
+    (if (and env (path-string? env))
+        (string->path env)
+        (build-path (find-system-path 'pref-dir) "quickscript"))))
 
 (define user-script-dir
-  (build-path quickscript-dir "user-scripts"))
+  (path->complete-path
+   (path->directory-path (build-path quickscript-dir "user-scripts"))))
+
+(define deprecated-library-file
+  (path->complete-path (build-path quickscript-dir "library.rktd")))
 
 (define (path-free? p-str)
   (not (path-only p-str)))

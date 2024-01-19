@@ -14,6 +14,57 @@
          setup/path-to-relative
          "base.rkt")
 
+(provide (contract-out
+          [library?
+           (-> any/c boolean?)]
+          [load
+           (-> library?)]
+          [save!
+           (-> library? void?)]
+          [directory-path?
+           (-> path? boolean?)]
+          [directories
+           (->* [library?]
+                [#:sorted? any/c]
+                (listof (and/c path? complete-path? directory-path?)))]
+          [directory->enabled+file
+           (-> library?
+               (and/c path? complete-path? directory-path?)
+               (listof (cons/c boolean? path-element?)))]
+          [all-enabled-scripts
+           (-> library? (listof (and/c path? complete-path?)))]
+          [directory<?
+           (-> library? path? path? boolean?)]
+          [directory->pretty-string
+           (->* [library? path?]
+                [#:file (or/c #f path-element?)]
+                immutable-string?)]
+          [path->writable-module-path
+           (-> library?
+               (and/c path? complete-path?)
+               (and/c (list/c (or/c 'file 'lib) immutable-string?)
+                      module-path?))]
+          [add-directory
+           (-> library?
+               (and/c path? complete-path? directory-path?)
+               library?)]
+          [removable-directory?
+           (-> library? path? boolean?)]
+          [remove-directory
+           (-> library?
+               (and/c path? complete-path? directory-path?)
+               library?)]
+          [exclude
+           (-> library?
+               (and/c path? complete-path? directory-path?)
+               path-element?
+               library?)]
+          [include
+           (-> library?
+               (and/c path? complete-path? directory-path?)
+               path-element?
+               library?)]))
+
 ;; Conceptually, a library encapsulates:
 ;;   - a set of directories containing script files; and
 ;;   - a set of script files to *not* include (called exclusions).
@@ -21,7 +72,11 @@
 ;;
 ;; For user-script-dir and other directories configured by the user,
 ;; which contain ad-hoc scripts schared across Racket versions,
-;; we store a hash table mapping paths to sets of file names to exclude.
+;; we store a hash table mapping complete paths to sets of file names to exclude.
+;; More specifically, keys must syntactically specify directories:
+;; this uniformity eases comparison, even though it does not solve the
+;; general problem, which is complex, potentially filesystem-dependent,
+;; and not needed in this context.
 ;;
 ;; For scripts installed as part of a Racket package---or, more generally,
 ;; in a collection---the situation is a bit more complicated.
@@ -44,6 +99,9 @@
 ;;     of the Racket installation (in the info.rkt files and caches).
 ;;     We do not store it again with our saved state.
 
+(define (directory-path? x)
+  (eq? x (path->directory-path x)))
+
 ;; the library data we save (shared across Racket versions)
 (serializable-struct
  ;; can evolve in the future using serializable-struct/versions
@@ -51,15 +109,15 @@
  #:guard (struct-guard/c
           (and/c (hash/c #:immutable #t
                          #:flat? #t
-                         path?
+                         (and/c path? complete-path? directory-path?)
                          (set/c path-element? #:cmp 'equal-always))
                  hash-equal-always?)
           (set/c (and/c normalized-lib-module-path?
                         (list/c 'lib immutable-string?))
                  #:cmp 'equal-always))
  #:transparent)
-(define (make-library-data)
-  (library-data (hashalw user-script-dir (setalw))
+(define (default-library-data)
+  (library-data (hashalw user-script-dir (user-script-exclusions-from-deprecated-library))
                 (setalw)))
 
 ;; a wrapper with installation info and some caches
@@ -91,13 +149,26 @@
                                  v
                                  dir))
                               #f]))
-        dir))
+        (path->directory-path dir)))
     find-collection-based-script-directories))
+
+(define (user-script-exclusions-from-deprecated-library)
+  (or (and (file-exists? deprecated-library-file)
+           (with-handlers ([exn:fail? (λ (e)
+                                        (log-quickscript-error "error importing from ~e: ~v"
+                                                               deprecated-library-file
+                                                               (exn-message e))
+                                        #f)])
+             (for/first ([{dir lst} (in-hash (file->value deprecated-library-file))]
+                         #:when (equal? user-script-dir (path->directory-path dir)))
+               (for/setalw ([s (in-list lst)])
+                 (string->path-element s)))))
+      (setalw)))
 
 ;; library-data is stored using the framework/preferences system,
 ;; which provides help for future changes without breaking compatibility
 (define pref-key 'plt:quickscript:library)
-(preferences:set-default pref-key (make-library-data) library-data?)
+(preferences:set-default pref-key (default-library-data) library-data?)
 (preferences:set-un/marshall pref-key
                              (λ (x)
                                (with-handlers ([exn:fail? (λ (e) 'corrupt)])
@@ -175,7 +246,7 @@
    (λ ()
      (define rslt
        (path->module-path pth #:cache (library-setup-cache lib)))
-     (and (normalized-lib-module-path? lib)
+     (and (normalized-lib-module-path? rslt)
           `(lib ,(string->immutable-string (cadr rslt)))))))
 
 (define (path->writable-module-path lib pth)
@@ -243,55 +314,17 @@
                         (struct-copy
                          library-data data
                          [collection-based-exclusions
-                          (set-add (library-data-collection-based-exclusions data)
-                                   (path->normalized-lib-module-path lib (build-path dir filename)))])
+                          (set-change (library-data-collection-based-exclusions data)
+                                      (path->normalized-lib-module-path lib (build-path dir filename)))])
                         (struct-copy
                          library-data data
                          [table (hash-update (library-data-table data)
                                              filename
                                              (λ (excludes)
-                                               (set-add excludes filename)))]))]))
+                                               (set-change excludes filename)))]))]))
 
 (define (exclude lib dir filename)
   (in/exclude set-add lib dir filename))
 
 (define (include lib dir filename)
   (in/exclude set-remove lib dir filename))
-
-(provide/contract
- [library?            (any/c . -> . boolean?)]
- #;
- [new-library         (-> library?)]
- [load                (-> library?)]
- [save!               (library? . -> . void?)]
- [directories         ([library?]
-                       [#:sorted? any/c]
-                       . ->* . (listof path?))]
- [directory->enabled+file (library?
-                           path?
-                           . -> . (listof (cons/c boolean? path-element?)))]
- [all-enabled-scripts (library? . -> . (listof path?))]
- [directory<?         (library? path? path? . -> . boolean?)]
- [directory->pretty-string ([library? path?]
-                            [#:file (or/c #f path-element?)]
-                            . ->* . immutable-string?)]
- [path->writable-module-path (library?
-                              path?
-                              . -> . (and/c (list/c (or/c 'file 'lib) immutable-string?)
-                                            module-path?))]
- [add-directory       (library?
-                       (and/c path? absolute-path?)
-                       . -> . library?)]
- [removable-directory? (library? path? . -> . boolean?)]
- [remove-directory    (library?
-                       (and/c path? absolute-path?)
-                       . -> . library?)]
- [exclude             (library?
-                       (and/c path? absolute-path?)
-                       path-element?
-                       . -> . library?)]
- [include             (library?
-                       (and/c path? absolute-path?)
-                       path-element?
-                       . -> . library?)]
- )
