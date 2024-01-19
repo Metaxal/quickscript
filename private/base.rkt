@@ -59,11 +59,13 @@
       p-str
       (path->string p-str)))
 
+(define info.rkt-element (string->path-element "info.rkt"))
+
 (define (script-file? f)
-  (and (equal? (path-get-extension f) #".rkt")
-       (not (equal? f (if (string? f)
+  (and (not (equal? f (if (string? f)
                           "info.rkt"
-                          (string->path-element "info.rkt"))))))
+                          info.rkt-element)))
+       (equal? (path-get-extension f) #".rkt")))
 
 (define (path-string=? dir1 dir2)
   (string=? (path-string->string dir1)

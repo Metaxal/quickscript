@@ -74,4 +74,4 @@
     (define qs-path (resolve-module-path 'quickscript-extra))
     (define f (build-path (path-only qs-path)
                           "scripts" "bookmarks.rkt"))
-    (displayln (make-shadow-script f))))
+    (displayln (make-shadow-script f #|FIXME|#))))
