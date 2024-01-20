@@ -26,7 +26,6 @@
          script-file?
          user-script-dir
          deprecated-library-file
-         quickscript-prefs.rktd
          get-property-dicts
          path-string->string)
 
@@ -51,9 +50,6 @@
 
 (define deprecated-library-file
   (path->complete-path (build-path quickscript-dir "library.rktd")))
-
-(define quickscript-prefs.rktd
-  (path->complete-path (build-path quickscript-dir "quickscript-prefs.rktd")))
 
 (define (path-free? p-str)
   (not (path-only p-str)))

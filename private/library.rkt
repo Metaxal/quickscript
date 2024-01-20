@@ -168,32 +168,18 @@
 ;; library-data is stored using the framework/preferences system,
 ;; which provides help for future changes without breaking compatibility
 (define pref-key 'plt:quickscript:library)
-(define (call-with-quickscript-prefs thunk)
-  (parameterize ([preferences:low-level-get-preference
-                  (λ (name [fail (λ () #f)])
-                    (get-preference name fail 'timestamp quickscript-prefs.rktd))]
-                 [preferences:low-level-put-preferences
-                  (λ (ks vs)
-                    (put-preferences ks vs #f quickscript-prefs.rktd))])
-    (thunk)))
-(call-with-quickscript-prefs
- (λ ()
-   (preferences:set-default pref-key (default-library-data) library-data?)
-   (preferences:set-un/marshall pref-key
-                                (λ (x)
-                                  (with-handlers ([exn:fail? (λ (e) 'corrupt)])
-                                    (serialize x)))
-                                (λ (x)
-                                  (with-handlers ([exn:fail? void])
-                                    (deserialize x))))))
+(preferences:set-default pref-key (default-library-data) library-data?)
+(preferences:set-un/marshall pref-key
+                             (λ (x)
+                               (with-handlers ([exn:fail? (λ (e) 'corrupt)])
+                                 (serialize x)))
+                             (λ (x)
+                               (with-handlers ([exn:fail? void])
+                                 (deserialize x))))
 (define (load)
-  (call-with-quickscript-prefs
-   (λ ()
-     (library-data->library (preferences:get pref-key)))))
+  (library-data->library (preferences:get pref-key)))
 (define (save! lib)
-  (call-with-quickscript-prefs
-   (λ ()
-     (preferences:set pref-key (library-lib lib)))))
+  (preferences:set pref-key (library-lib lib)))
 
 (define (directory<? lib a b)
   ;; Order:
