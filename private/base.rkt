@@ -17,8 +17,8 @@
          get-script-help-string
          make-simple-script-string
          prop-dict-ref
-         compile-user-scripts
-         compile-user-script
+         #;compile-user-scripts
+         #;compile-user-script
          this-os-type
          time-info
          path-free?
@@ -152,7 +152,7 @@
 ;; script-filename : path-string?
 (define (get-property-dicts script-filepath)
   ; Ensure the script is compiled for the correct version of Racket
-  (compile-user-script script-filepath)
+  #;(compile-user-script script-filepath)
 
   (define the-submod (make-submod-path script-filepath))
   (dynamic-require the-submod #f)
@@ -207,14 +207,14 @@
 ;===================;
 ;=== Compilation ===;
 ;===================;
-
+#;
 (define/contract (compile-user-script file)
   (-> path-string? any)
 
   ;; Simple wrapper for now, but may be specialized for efficiency later.
   (void)
   #;(compile-user-scripts (list file)))
-
+#;
 (define/contract (compile-user-scripts files
                                        #:exn-gobbler [gb (make-exn-gobbler "Compiling scripts")])
   (->* [(listof path-string?)]

@@ -65,12 +65,14 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                  '(caution ok))))
 
 ;; -> exn-gobbler?
+#;
 (define (compile-library)
   (time-info "Recompiling library"
                (parameterize ([error-display-handler orig-display-handler])
                  (compile-user-scripts (user-script-files)))))
 
 ;; -> void?
+#;
 (define (compile-library/frame)
   (define fr #false)
     (dynamic-wind
@@ -240,7 +242,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
               ; See HelpDesk for "Manipulating namespaces"
               (let ([f (parameterize ([current-namespace ns])
                          ; Ensure the script is compiled for the correct version of Racket
-                         (compile-user-script fpath)
+                         #;(compile-user-script fpath)
                          (dynamic-require fpath name))]
                     [kw-dict
                      (append
@@ -457,6 +459,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                   ("&Reload menu"                . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (reload-scripts-menu)))
+                  #;
                   ("&Compile scripts"            . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (compile-library/frame)
@@ -473,7 +476,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (new separator-menu-item% [parent scripts-menu])
 
         ;; Show the error messages that happened during the initial compilation.
-        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
+        #;(exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
 
         (reload-scripts-menu)
         (on-startup)))
@@ -569,7 +572,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
     ; This must be done before building the menus.
     ; The compilation is done at this point so that the splash screen doesn't disappear,
     ; but the message box will be shown after the DrRacket frame is shown up.
-    (define init-compile-exn-gobbler (compile-library))
+    #;(define init-compile-exn-gobbler (compile-library))
 
     ;; Search for "Extending the Existing DrRacket Classes" to see what can be extended:
     (drracket:get/extend:extend-definitions-text text-mixin)
