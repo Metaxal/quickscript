@@ -130,14 +130,14 @@
 ;; script-filename : path-string?
 (define (make-submod-path script-filename)
   (list 'submod
-        (list 'file (path-string->string script-filename))
+        (list 'file (path-string->string script-filename)) ;FIXME
         'script-info))
 
 ;; script-filename : path-string?
 ;; Returns #f or a string.
 ;; Important: see note for get-property-dicts
 (define (get-script-help-string script-filename)
-  (dynamic-require (make-submod-path script-filename)
+  (dynamic-require (make-submod-path script-filename) ;FIXME
                    'quickscript-module-help-string
                    (λ () #f)))
 
@@ -154,7 +154,7 @@
   ; Ensure the script is compiled for the correct version of Racket
   #;(compile-user-script script-filepath)
 
-  (define the-submod (make-submod-path script-filepath))
+  (define the-submod (make-submod-path script-filepath)) ;FIXME
   (dynamic-require the-submod #f)
   (define-values (vars syntaxes) (module->exports the-submod))
   (define funs (map car (dict-ref vars 0)))
