@@ -278,7 +278,7 @@
                                 (directory-list dir #:build? #f)
                                 '()))]
              #:when (and (script-file? name)
-                         (file-exists? (build-path dir name))))
+                         (file-exists? (build-path dir name)))) ; to exclude directories
     (cons (enabled? name) name)))
 
 (define (all-enabled-scripts lib)
