@@ -167,8 +167,10 @@
 
 ;; library-data is stored using the framework/preferences system,
 ;; which provides help for future changes without breaking compatibility
+;; Calling (default-library-data) may consult the filesystem, so do it
+;; during (load), not when instantiating this module.
 (define pref-key 'plt:quickscript:library)
-(preferences:set-default pref-key (default-library-data) library-data?)
+(preferences:set-default pref-key #f (or/c library-data? #f))
 (preferences:set-un/marshall pref-key
                              (λ (x)
                                (with-handlers ([exn:fail? (λ (e) 'corrupt)])
@@ -177,7 +179,8 @@
                                (with-handlers ([exn:fail? void])
                                  (deserialize x))))
 (define (load)
-  (library-data->library (preferences:get pref-key)))
+  (library-data->library (or (preferences:get pref-key)
+                             (default-library-data))))
 (define (save! lib)
   (preferences:set pref-key (library-lib lib)))
 
