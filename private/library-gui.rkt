@@ -11,52 +11,60 @@
 
 (provide make-library-gui)
 
-(define check-sym #\☑)
-(define uncheck-sym #\☐)
+(define (check+file->un/checked-file checked? f)
+  (string-append-immutable (if checked? "☑ " "☐ ")
+                           f))
 
-(define (un/checked-file->check+file cf)
-  (define checked? (char=? check-sym (string-ref cf 0)))
-  (values checked? (substring cf 2)))
+(define data-list-box%
+  (class list-box%
+    (init [(d->s datum->string)]
+          [choices '()])
+    (define datum->string d->s)
+    (super-new [choices '()])
+    (set choices)
+    (inherit append clear get-data get-number get-selection set-selection)
+    (define/override (set choices)
+      (clear)
+      (for ([d (in-list choices)])
+        (append (datum->string d) d)))
+    (define/public (set-datum-selection d)
+      (unless (for/first ([i (in-range (get-number))]
+                          #:when (equal? d (get-data i)))
+                (set-selection i)
+                #t)
+        (raise-arguments-error '|set-datum-selection in data-list-box%|
+                               "no item matching the given datum"
+                               "given" d)))
+    (define/public (get-datum-selection)
+      (define i (get-selection))
+      (and i (get-data i)))))
 
-(define (check+file->un/checked-file c f)
-  (string-append
-   (string (if c uncheck-sym check-sym)
-           #\space)
-   f))
-
-(define (make-library-gui [the-lib-file library-file]
-                          #:parent-frame [parent-frame #f]
+(define (make-library-gui #:parent-frame [parent-frame #f]
                           #:drracket-parent? [drracket-parent? #f])
   ;; Load the files in a new namespace so that if the file is changed
   ;; the library can pick up the changes.
   (parameterize ([current-namespace (make-base-empty-namespace)])
     (log-quickscript-info "Starting the library GUI.")
-    (define the-lib (lib:load the-lib-file))
-    (define (save!) (lib:save! the-lib the-lib-file))
+    (define the-lib (lib:load))
+    (define (save! new-lib)
+      (lib:save! new-lib)
+      (set! the-lib new-lib))
+    (define (user-script-dir)
+      (lib:user-script-dir the-lib))
 
     (define (files-lb-selection-values)
-      (define cf (send files-lb get-string-selection))
+      (define cf (send files-lb get-datum-selection))
       (if cf
-          (un/checked-file->check+file cf)
+          (values (car cf) (cdr cf))
           (values #f #f)))
 
-
     (define (set-files-lb dir)
-      (define files
-        (if (directory-exists? dir)
-            (map path->string
-                 (filter (λ (f) (script-file? (build-path dir f)))
-                         (directory-list dir #:build? #f)))
-            '()))
-      (define excluded-files (lib:exclusions the-lib dir))
-      (send files-lb set
-            (map (λ (f) (check+file->un/checked-file (member f excluded-files) f))
-                 files)))
+      (send files-lb set (lib:directory->enabled+file the-lib dir)))
 
     ;; Returns the current selected dir, file and whether it is checked,
     ;; if all have a value, otherwise returns #f for all 3 values.
     (define (get-dir+check+file)
-      (define dir (send dir-lb get-string-selection))
+      (define dir (send dir-lb get-datum-selection))
       (if dir
           (let-values ([(checked? file) (files-lb-selection-values)])
             (if file
@@ -65,25 +73,22 @@
           (values #f #f #f)))
 
     (define (add-directory [dir #f])
-      (unless dir
-        (set! dir
-              (get-directory "Choose a script directory to add to the library"
-                             fr
-                             (find-user-pkgs-dir))))
-      (when dir
-        (lib:add-directory! the-lib dir)
-        (save!)
-        (reload-dir-lb)
-        (send dir-lb set-string-selection (path->string dir))
-        (dir-lb-select dir)))
+      (let* ([dir (or dir
+                      (get-directory "Choose a script directory to add to the library"
+                                     fr))]
+             [dir (and dir (path->complete-path (path->directory-path dir)))])
+        (when dir
+          (save! (lib:add-directory the-lib dir))
+          (reload-dir-lb)
+          (send dir-lb set-datum-selection dir)
+          (dir-lb-select dir))))
 
     (define (remove-directory dir)
-      (lib:remove-directory! the-lib dir)
-      (save!)
+      (save! (lib:remove-directory the-lib dir))
       (reload-dir-lb))
 
     (define (remove-selected-dir)
-      (define dir (send dir-lb get-string-selection))
+      (define dir (send dir-lb get-datum-selection))
       (when dir
         (remove-directory dir)
         (send files-lb clear)))
@@ -92,22 +97,22 @@
     (define (ex/include-selected-file [force #f])
       (define-values (dir checked? file) (get-dir+check+file))
       (when file
-        (cond [(eq? force 'exclude) (lib:exclude! the-lib dir file)]
-              [(eq? force 'include) (lib:include! the-lib dir file)]
-              [checked?             (lib:exclude! the-lib dir file)]
-              [else                 (lib:include! the-lib dir file)])
-        (save!)
-        (define files-lb-selection (send files-lb get-selection))
+        (define include?
+          (case force
+            [(exclude) #f]
+            [(include) #t]
+            [else (not checked?)]))
+        (save! ((if include? lib:include lib:exclude) the-lib dir file))
         (set-files-lb dir)
         ; Restore the previously selected item
-        (send files-lb set-selection files-lb-selection))
+        (send files-lb set-datum-selection (cons include? file)))
       (update-bt-files-un/check))
 
     (define (shadow-selected-file)
       (define-values (dir checked? file) (get-dir+check+file))
       (when file
         (define new-script-path
-          (build-path user-script-dir file))
+          (build-path (user-script-dir) file))
         (define proceed?
           (eq? 'yes
                (message-box "Create shadow script?"
@@ -115,7 +120,7 @@
  This will:
 
  1) Disable the script file
- @(path->string (build-path dir file))
+ @(lib:directory->pretty-string the-lib dir #:file file))
 
  2) Create a new 'shadow' script file
  @(path->string new-script-path)
@@ -147,27 +152,25 @@
                                   '(caution ok-cancel)))))
           (when overwrite?
             (display-to-file 
-             (make-shadow-script (build-path dir file))
+             (let ([pth (build-path dir file)])
+               (make-shadow-script pth (lib:path->writable-module-path the-lib pth)))
              new-script-path
              #:exists 'replace)
             (ex/include-selected-file 'exclude)
-            (dir-lb-select user-script-dir)
+            (dir-lb-select (user-script-dir))
             (when drracket-parent?
               (send parent-frame open-in-new-tab new-script-path))))))
 
-    (define (dir-lb-select [dir (send dir-lb get-string-selection)])
+    (define (dir-lb-select [dir (send dir-lb get-datum-selection)])
       (when dir
-        (set! dir (path-string->string dir))
         (set-files-lb dir)
-        (send dir-lb set-string-selection dir)
-        (define not-user-script-dir?
-          (not (path-string=? dir user-script-dir)))
-        (send bt-dir-remove enable not-user-script-dir?)
-        (send bt-files-shadow enable not-user-script-dir?)))
+        (send dir-lb set-datum-selection dir)
+        (send bt-dir-remove enable (lib:removable-directory? the-lib dir))
+        (send bt-files-shadow enable (not (equal? dir (user-script-dir))))))
 
     (define (reload-dir-lb)
       (send dir-lb clear)
-      (send dir-lb set (lib:directories the-lib)))
+      (send dir-lb set (lib:directories the-lib #:sorted? #t)))
 
     (define (set-msg-help-string dir file)
       (when (and dir file)
@@ -188,9 +191,11 @@
 
     (define dir-panel (new vertical-panel% [parent panels]
                            [style '(auto-hscroll auto-vscroll)]))
-    (define dir-lb (new list-box% [parent dir-panel]
+    (define dir-lb (new data-list-box% [parent dir-panel]
                         [label "Directories"]
-                        [choices (lib:directories the-lib)]
+                        [choices (lib:directories the-lib #:sorted? #t)]
+                        [datum->string (λ (dir)
+                                         (lib:directory->pretty-string the-lib dir))]
                         [style '(single vertical-label)]
                         [callback (λ (lb ev)  (dir-lb-select))]))
 
@@ -210,9 +215,12 @@
     (define files-panel (new vertical-panel% [parent panels]
                              [style '(auto-hscroll auto-vscroll)]))
     (define files-lb
-      (new list-box% [parent files-panel]
+      (new data-list-box% [parent files-panel]
            [label "Scripts"]
            [choices '()]
+           [datum->string
+            (λ (x)
+              (check+file->un/checked-file (car x) (path->string (cdr x))))]
            [style '(extended vertical-label)]
            [callback
             (λ (lb ev) 
@@ -269,7 +277,7 @@
                           [label "&Close"]
                           [callback (λ (bt ev) (send fr show #f))]))
 
-    (dir-lb-select user-script-dir)
+    (dir-lb-select (user-script-dir))
 
     (send fr show #t)))
 
