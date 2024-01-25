@@ -26,10 +26,12 @@
           [directories
            (->* [library?]
                 [#:sorted? any/c]
-                (listof (and/c path? complete-path? directory-path?)))]
+                (listof complete-directory-path/c))]
+          [rename library-user-script-dir user-script-dir
+                  (-> library? complete-directory-path/c)]
           [directory->enabled+file
            (-> library?
-               (and/c path? complete-path? directory-path?)
+               complete-directory-path/c
                (listof (cons/c boolean? path-element?)))]
           [all-enabled-scripts
            (-> library? (listof (and/c path? complete-path?)))]
@@ -44,24 +46,32 @@
                (and/c path? complete-path?)
                (and/c (list/c (or/c 'file 'lib) immutable-string?)
                       module-path?))]
-          [add-directory
-           (-> library?
-               (and/c path? complete-path? directory-path?)
-               library?)]
           [removable-directory?
-           (-> library? path? boolean?)]
+           (-> library? complete-directory-path/c boolean?)]
+          [library-has-directory?
+           (-> library? complete-directory-path/c boolean?)]
+          [add-directory
+           (->i #:chaperone
+                ([lib library?]
+                 [dir complete-directory-path/c])
+                #:pre (lib dir) (not (library-has-directory? lib dir))
+                [_ library?])]
           [remove-directory
-           (-> library?
-               (and/c path? complete-path? directory-path?)
-               library?)]
+           (->i #:chaperone
+                ([lib library?]
+                 [dir complete-directory-path/c])
+                #:pre (lib dir) (removable-directory? lib dir)
+                [_ library?])]
           [exclude
-           (-> library?
-               (and/c path? complete-path? directory-path?)
-               path-element?
-               library?)]
+           (->i #:chaperone
+                ([lib library?]
+                 [dir complete-directory-path/c]
+                 [_ path-element?])
+                #:pre (lib dir) (library-has-directory? lib dir)
+                [_ library?])]
           [include
            (-> library?
-               (and/c path? complete-path? directory-path?)
+               complete-directory-path/c
                path-element?
                library?)]))
 
@@ -70,12 +80,15 @@
 ;;   - a set of script files to *not* include (called exclusions).
 ;; That is, by default all non-excluded files are included (in particular the new ones).
 ;;
-;; For user-script-dir and other directories configured by the user,
-;; which contain ad-hoc scripts schared across Racket versions,
+;; The user-script-dir contains ad-hoc scripts shared across Racket versions
+;; and is where new scripts are created by the UI.
+;; It is part of the library by definition: we store only a set of file names to exclude.
+;;
+;; The user may add additional ad-hoc directories (also shared across Racket versions),
 ;; we store a hash table mapping complete paths to sets of file names to exclude.
 ;; More specifically, keys must syntactically specify directories:
 ;; this uniformity eases comparison, even though it does not solve the
-;; general problem, which is complex, potentially filesystem-dependent,
+;; general problem of path “equivalence”, which is complex, potentially filesystem-dependent,
 ;; and not needed in this context.
 ;;
 ;; For scripts installed as part of a Racket package---or, more generally,
@@ -94,42 +107,79 @@
 ;;     using path->relative-string/library, which includes package information.
 ;;   - For persistent storage, we represent an collection-based exclusion as a
 ;;     normalized-lib-module-path?, which will continue to apply regardless of
-;;     what package (or even direct link) supplies the collection.
+;;     what package (or even direct collection link) supplies the collection.
 ;;   - The set of collection-based script directories is already stored as part
 ;;     of the Racket installation (in the info.rkt files and caches).
 ;;     We do not store it again with our saved state.
 
 (define (directory-path? x)
   (eq? x (path->directory-path x)))
+(define/final-prop path-element-set/c
+  (set/c path-element? #:cmp 'equal-always))
+(define/final-prop complete-directory-path/c
+  (and/c path? complete-path? directory-path?))
 
 ;; the library data we save (shared across Racket versions)
 (serializable-struct
  ;; can evolve in the future using serializable-struct/versions
- library-data (table collection-based-exclusions)
+ library-data (user-exclusions table collection-exclusions)
  #:guard (struct-guard/c
+          path-element-set/c
           (and/c (hash/c #:immutable #t
                          #:flat? #t
-                         (and/c path? complete-path? directory-path?)
-                         (set/c path-element? #:cmp 'equal-always))
+                         complete-directory-path/c
+                         path-element-set/c)
                  hash-equal-always?)
           (set/c (and/c normalized-lib-module-path?
                         (list/c 'lib immutable-string?))
                  #:cmp 'equal-always))
  #:transparent)
-(define (default-library-data)
-  (library-data (hashalw user-script-dir (user-script-exclusions-from-deprecated-library))
-                (setalw)))
+(define (empty-library-data)
+  (library-data (setalw) #hashalw() (setalw)))
 
 ;; a wrapper with installation info and some caches
 ;; this is NOT thread-safe, due to hash mutation
-(struct library (lib collects-dirs setup-cache mp-cache pretty-cache)
+(struct library (user-script-dir lib collects-script-dirs setup-cache mp-cache pretty-cache)
   #:transparent)
-(define (library-data->library lib)
-  (library lib
-           (find-collection-based-script-directories)
-           (make-hash)
-           (make-hash)
-           (make-hash)))
+(define (library-data->library maybe-lib)
+  (let* ([quickscript-dir (or (test-quickscript-dir) standard-quickscript-dir)]
+         [user-script-dir (path->directory-path (build-path quickscript-dir "user-scripts"))]
+         [lib (or maybe-lib (struct-copy
+                             library-data (empty-library-data)
+                             [user-exclusions (user-exclusions-from-deprecated-library
+                                               #:user-script-dir user-script-dir)]))]
+         [lib (cond
+                [(hash-ref (library-data-table lib) user-script-dir #f)
+                 (λ (st)
+                   (log-quickscript-error
+                    "saved library data contained user-scripts-dir as an extra directory")
+                   (struct-copy library-data lib
+                                [table (hash-remove (library-data-table lib) user-script-dir)]
+                                [user-exclusions (set-union st (library-data-user-exclusions st))]))]
+                [else
+                 lib])]
+         [setup-cache (make-hash)]
+         [collects-script-dirs (find-collection-based-script-directories)]
+         [collects-scripts-dirs
+          (if (test-quickscript-dir)
+              (for/setalw ([dir (in-immutable-set collects-script-dirs)]
+                           #:when (equal? "quickscript" (path->pkg dir #:cache setup-cache)))
+                dir)
+              collects-script-dirs)])
+    (library user-script-dir
+             lib
+             collects-scripts-dirs
+             setup-cache
+             (make-hash)
+             (make-hash))))
+
+(define standard-quickscript-dir
+  ;; not guaranteed to exist
+  (build-path (find-system-path 'pref-dir) "quickscript"))
+(define test-quickscript-dir
+  ;; #f means we are not currently testing, so use standard-quickscript-dir
+  (make-parameter #f (λ (x)
+                       (and x (path->complete-path x)))))
 
 (define find-collection-based-script-directories
   (let ([absent (gensym)])
@@ -152,7 +202,9 @@
         (path->directory-path dir)))
     find-collection-based-script-directories))
 
-(define (user-script-exclusions-from-deprecated-library)
+(define (user-exclusions-from-deprecated-library #:user-script-dir user-script-dir)
+  (define deprecated-library-file
+    (build-path user-script-dir 'up "library.rktd"))
   (or (and (file-exists? deprecated-library-file)
            (with-handlers ([exn:fail? (λ (e)
                                         (log-quickscript-error "error importing from ~e: ~v"
@@ -160,7 +212,8 @@
                                                                (exn-message e))
                                         #f)])
              (for/first ([{dir lst} (in-hash (file->value deprecated-library-file))]
-                         #:when (equal? user-script-dir (path->directory-path dir)))
+                         #:when (equal? user-script-dir
+                                        (path->complete-path (path->directory-path dir))))
                (for/setalw ([s (in-list lst)])
                  (string->path-element s)))))
       (setalw)))
@@ -179,8 +232,7 @@
                                (with-handlers ([exn:fail? void])
                                  (deserialize x))))
 (define (load)
-  (library-data->library (or (preferences:get pref-key)
-                             (default-library-data))))
+  (library-data->library (preferences:get pref-key)))
 (define (save! lib)
   (preferences:set pref-key (library-lib lib)))
 
@@ -193,7 +245,8 @@
   ;;       * then sorted by directory->pretty-string
   ;;   - unknown paths sorted by path<?
   (define table (library-data-table (library-lib lib)))
-  (define collects-dirs (library-collects-dirs lib))
+  (define collects-dirs (library-collects-script-dirs lib))
+  (define user-script-dir (library-user-script-dir lib))
   (cond
     [(equal? a b)
      #f]
@@ -257,23 +310,28 @@
       `(file ,(string->immutable-string (path->string pth)))))
 
 (define (directories lib #:sorted? [sorted? #f])
-  (if sorted?
-      (sort (directories lib)
-            (λ (a b)
-              (directory<? lib a b)))
-      (append (hash-keys (library-data-table (library-lib lib)))
-              (set->list (library-collects-dirs lib)))))
+  (cond
+    [sorted?
+     (sort (directories lib #:sorted? #f)
+           (λ (a b)
+             (directory<? lib a b)))]
+    [else
+     (cons (library-user-script-dir lib)
+           (append (hash-keys (library-data-table (library-lib lib)))
+                   (set->list (library-collects-script-dirs lib))))]))
 
 (define (directory->enabled+file lib dir)
   (define data (library-lib lib))
   (define enabled?
     (cond
-      [(hash-ref (library-data-table data) dir #f)
+      [(if (equal? dir (library-user-script-dir lib))
+           (library-data-user-exclusions data)
+           (hash-ref (library-data-table data) dir #f))
        => (λ (excludes)
             (λ (name)
               (not (set-member? excludes name))))]
       [else
-       (define excludes (library-data-collection-based-exclusions data))
+       (define excludes (library-data-collection-exclusions data))
        (λ (name)
          (define pth (build-path dir name))
          (not (set-member? excludes (path->normalized-lib-module-path lib pth))))]))
@@ -281,7 +339,7 @@
                                 (directory-list dir #:build? #f)
                                 '()))]
              #:when (and (script-file? name)
-                         (file-exists? (build-path dir name)))) ; to exclude directories
+                         (file-exists? (build-path dir name)))) ; i.e., not a directory
     (cons (enabled? name) name)))
 
 (define (all-enabled-scripts lib)
@@ -291,17 +349,21 @@
     (build-path dir (cdr enabled+file))))
 
 (define (removable-directory? lib dir)
-  (and (hash-has-key? (library-data-table (library-lib lib)) dir)
-       (not (equal? user-script-dir dir))))
+  (hash-has-key? (library-data-table (library-lib lib)) dir))
+
+(define (library-has-directory? lib dir)
+  (or (equal? dir (library-user-script-dir lib))
+      (removable-directory? lib dir)
+      (set-member? (library-collects-script-dirs lib) dir)))
 
 (define (add-directory lib dir)
   (define data (library-lib lib))
   (struct-copy library lib
-               [lib (struct-copy library-data data
-                                 [table (hash-update (library-data-table data)
-                                                     dir
-                                                     values
-                                                     setalw)])]))
+    [lib (struct-copy library-data data
+                      [table (hash-update (library-data-table data)
+                                          dir
+                                          values
+                                          setalw)])]))
 
 (define (remove-directory lib dir)
   (define data (library-lib lib))
@@ -313,18 +375,25 @@
 (define (in/exclude set-change lib dir filename)
   (define data (library-lib lib))
   (struct-copy library lib
-               [lib (if (set-member? (library-collects-dirs lib) dir)
-                        (struct-copy
-                         library-data data
-                         [collection-based-exclusions
-                          (set-change (library-data-collection-based-exclusions data)
-                                      (path->normalized-lib-module-path lib (build-path dir filename)))])
-                        (struct-copy
-                         library-data data
-                         [table (hash-update (library-data-table data)
-                                             filename
-                                             (λ (excludes)
-                                               (set-change excludes filename)))]))]))
+    [lib (cond
+           [(equal? dir (library-user-script-dir lib))
+            (struct-copy
+             library-data data
+             [user-exclusions (set-change (library-data-user-exclusions data) filename)])]
+           [(set-member? (library-collects-script-dirs lib) dir)
+             (struct-copy
+              library-data data
+              [collection-exclusions
+               (set-change (library-data-collection-exclusions data)
+                           (path->normalized-lib-module-path lib (build-path dir filename)))])]
+           [else
+             (struct-copy
+              library-data data
+              [table (hash-update (library-data-table data)
+                                  filename
+                                  (λ (excludes)
+                                    (set-change excludes filename))
+                                  setalw)])])]))
 
 (define (exclude lib dir filename)
   (in/exclude set-add lib dir filename))

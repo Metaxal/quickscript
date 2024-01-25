@@ -33,9 +33,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
 (define orig-display-handler #f) ; will be set in the unit.
 
-(define (user-script-files)
-  (lib:all-enabled-scripts (lib:load)))
-
 (define (error-message-box str e)
   (define sp (open-output-string))
   (parameterize ([current-error-port sp])
@@ -354,6 +351,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; All menu item scripts have are at the key `#f` in property-dicts.
         ;; The key for other scripts (hooks, not menu entries) is the script's identifier (name).
         (define property-dicts (make-hasheq))
+        (define user-script-dir 'user-script-dir-not-loaded)
 
         (define/private (load-properties!)
           (set! property-dicts (make-hasheq))
@@ -361,8 +359,10 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ;; Create an empty namespace to load all the scripts (in the same namespace).
           (parameterize ([current-namespace (make-base-empty-namespace)]
                          [error-display-handler orig-display-handler])
+            (define lib (lib:load))
+            (set! user-script-dir (lib:user-script-dir lib))
             ;; For all script files in the script directory.
-            (for ([f (in-list (user-script-files))])
+            (for ([f (in-list (lib:all-enabled-scripts lib))])
               (time-info
                (string-append "Loading file " (path->string f))
                (with-handlers* ([exn:fail?
@@ -389,7 +389,8 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            (set! menu-reload-count (add1 menu-reload-count))
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
 
-           (reset-relevant-directories-state!)
+           (unless (eq? user-script-dir 'user-script-dir-not-loaded)
+             (reset-relevant-directories-state!))
 
            (load-properties!)
 

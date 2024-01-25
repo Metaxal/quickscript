@@ -24,8 +24,6 @@
          path-free?
          path-string=?
          script-file?
-         user-script-dir
-         deprecated-library-file
          get-property-dicts
          path-string->string)
 
@@ -36,20 +34,6 @@
 (define vm-bytes (string->bytes/utf-8 (symbol->string (system-type 'vm))))
 
 (define-logger quickscript)
-
-(define quickscript-dir
-  ;; not guaranteed to exist
-  (let ([env (getenv "PLTQUICKSCRIPTDIR")])
-    (if (and env (path-string? env))
-        (string->path env)
-        (build-path (find-system-path 'pref-dir) "quickscript"))))
-
-(define user-script-dir
-  (path->complete-path
-   (path->directory-path (build-path quickscript-dir "user-scripts"))))
-
-(define deprecated-library-file
-  (path->complete-path (build-path quickscript-dir "library.rktd")))
 
 (define (path-free? p-str)
   (not (path-only p-str)))

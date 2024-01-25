@@ -49,6 +49,8 @@
     (define (save! new-lib)
       (lib:save! new-lib)
       (set! the-lib new-lib))
+    (define (user-script-dir)
+      (lib:user-script-dir the-lib))
 
     (define (files-lb-selection-values)
       (define cf (send files-lb get-datum-selection))
@@ -110,7 +112,7 @@
       (define-values (dir checked? file) (get-dir+check+file))
       (when file
         (define new-script-path
-          (build-path user-script-dir file))
+          (build-path (user-script-dir) file))
         (define proceed?
           (eq? 'yes
                (message-box "Create shadow script?"
@@ -155,7 +157,7 @@
              new-script-path
              #:exists 'replace)
             (ex/include-selected-file 'exclude)
-            (dir-lb-select user-script-dir)
+            (dir-lb-select (user-script-dir))
             (when drracket-parent?
               (send parent-frame open-in-new-tab new-script-path))))))
 
@@ -164,7 +166,7 @@
         (set-files-lb dir)
         (send dir-lb set-datum-selection dir)
         (send bt-dir-remove enable (lib:removable-directory? the-lib dir))
-        (send bt-files-shadow enable (not (equal? dir user-script-dir)))))
+        (send bt-files-shadow enable (not (equal? dir (user-script-dir))))))
 
     (define (reload-dir-lb)
       (send dir-lb clear)
@@ -275,7 +277,7 @@
                           [label "&Close"]
                           [callback (λ (bt ev) (send fr show #f))]))
 
-    (dir-lb-select user-script-dir)
+    (dir-lb-select (user-script-dir))
 
     (send fr show #t)))
 
