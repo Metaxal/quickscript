@@ -1,6 +1,5 @@
 #lang racket/base
 (require racket/contract
-         racket/dict
          racket/file
          racket/path
          racket/set
@@ -14,6 +13,12 @@
          setup/path-to-relative
          "base.rkt")
 
+(module+ for-test
+  (provide (contract-out
+            [test-quickscript-dir
+             (parameter/c (or/c #f path-string?)
+                          (or/c #f complete-directory-path/c))])))
+
 (provide (contract-out
           [library?
            (-> any/c boolean?)]
@@ -21,6 +26,8 @@
            (-> library?)]
           [save!
            (-> library? void?)]
+          [library=?
+           (-> library? library? boolean?)]
           [directory-path?
            (-> path? boolean?)]
           [directories
@@ -69,11 +76,13 @@
                  [_ path-element?])
                 #:pre (lib dir) (library-has-directory? lib dir)
                 [_ library?])]
-          [include
-           (-> library?
-               complete-directory-path/c
-               path-element?
-               library?)]))
+          [include ; TODO: removal of exclusions for absent collections (needs different API: no path)
+           (->i #:chaperone
+                ([lib library?]
+                 [dir complete-directory-path/c]
+                 [_ path-element?])
+                #:pre (lib dir) (library-has-directory? lib dir)
+                [_ library?])]))
 
 ;; Conceptually, a library encapsulates:
 ;;   - a set of directories containing script files; and
@@ -85,7 +94,7 @@
 ;; It is part of the library by definition: we store only a set of file names to exclude.
 ;;
 ;; The user may add additional ad-hoc directories (also shared across Racket versions),
-;; we store a hash table mapping complete paths to sets of file names to exclude.
+;; for which we store a hash table mapping complete paths to sets of file names to exclude.
 ;; More specifically, keys must syntactically specify directories:
 ;; this uniformity eases comparison, even though it does not solve the
 ;; general problem of path “equivalence”, which is complex, potentially filesystem-dependent,
@@ -105,7 +114,7 @@
 ;; Therefore:
 ;;   - For display to users, we preserve the distinctions among directories
 ;;     using path->relative-string/library, which includes package information.
-;;   - For persistent storage, we represent an collection-based exclusion as a
+;;   - For persistent storage, we represent a collection-based exclusion as a
 ;;     normalized-lib-module-path?, which will continue to apply regardless of
 ;;     what package (or even direct collection link) supplies the collection.
 ;;   - The set of collection-based script directories is already stored as part
@@ -178,8 +187,10 @@
   (build-path (find-system-path 'pref-dir) "quickscript"))
 (define test-quickscript-dir
   ;; #f means we are not currently testing, so use standard-quickscript-dir
+  ;; When non-false, this parameter also arranges for (load) to ignore
+  ;; collection-based scripts that do not come from the "quickscript" package.
   (make-parameter #f (λ (x)
-                       (and x (path->complete-path x)))))
+                       (and x (path->directory-path (path->complete-path x))))))
 
 (define find-collection-based-script-directories
   (let ([absent (gensym)])
@@ -235,6 +246,14 @@
   (library-data->library (preferences:get pref-key)))
 (define (save! lib)
   (preferences:set pref-key (library-lib lib)))
+
+(define (library=? a b)
+  ;; ignores caches
+  (define-syntax-rule (cf fld ...)
+    (and (equal-always? (fld a) (fld b)) ...))
+  (cf library-user-script-dir
+      library-lib
+      library-collects-script-dirs))
 
 (define (directory<? lib a b)
   ;; Order:
@@ -306,6 +325,7 @@
           `(lib ,(string->immutable-string (cadr rslt)))))))
 
 (define (path->writable-module-path lib pth)
+  ;; TODO: maybe "read" able, since we mean that we can `write` the path, not write TO the path
   (or (path->normalized-lib-module-path lib pth)
       `(file ,(string->immutable-string (path->string pth)))))
 
@@ -390,10 +410,9 @@
              (struct-copy
               library-data data
               [table (hash-update (library-data-table data)
-                                  filename
+                                  dir
                                   (λ (excludes)
-                                    (set-change excludes filename))
-                                  setalw)])])]))
+                                    (set-change excludes filename)))])])]))
 
 (define (exclude lib dir filename)
   (in/exclude set-add lib dir filename))
