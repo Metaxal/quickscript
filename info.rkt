@@ -1,7 +1,22 @@
 #lang info
 
+(define pkg-name   "quickscript")
+(define collection "quickscript")
+(define name       "Quickscript")
+(define version    "1.1")
+(define pkg-desc   "Scripting engine for DrRacket.")
+(define license
+  '(Apache-2.0 OR MIT))
+
+(define drracket-tools      '(("tool.rkt")))
+(define drracket-tool-names '("Quickscript"))
+(define drracket-tool-icons '(#f))
+
+(define scribblings
+  '(("scribblings/quickscript.scrbl" () (drracket-plugin) "quickscript")))
+
 (define deps
-  '(["base" #:version "8.13.0.2"] ; for equal-always? fix
+  '(["base" #:version "8.13.0.2"] ; for path equal-always? fix
     "drracket-plugin-lib"
     "gui-lib"
     "net-lib"
@@ -13,13 +28,3 @@
     "gui-doc"
     "racket-doc"
     "rackunit-lib"))
-
-(define name                 "Quickscript")
-(define drracket-tools       '(("tool.rkt")))
-(define drracket-tool-names  '("Quickscript"))
-(define drracket-tool-icons  '(#f))
-
-(define scribblings '(("scribblings/quickscript.scrbl" () (drracket-plugin) "quickscript")))
-
-(define license
-  '(Apache-2.0 OR MIT))
