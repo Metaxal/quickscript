@@ -120,9 +120,12 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ;(define text (send frame get-editor))
           ; for DrRacket:
           (define defed (get-definitions-text))
+          (define inted (get-interactions-text))
           (if (send defed has-focus?)
               defed
-              (get-interactions-text)))
+              (if (send inted has-focus?)
+                  inted
+                  defed)))
 
         (define/private (new-script)
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
