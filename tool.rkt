@@ -125,6 +125,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
               defed
               (if (send inted has-focus?)
                   inted
+                  ;; Defaulting to defs allows to make parallel tests pass
+                  ;; otherwise the focus may be lost due to multiple scripts
+                  ;; running in multiple Drr windows.
                   defed)))
 
         (define/private (new-script)
