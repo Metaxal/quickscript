@@ -2,7 +2,7 @@
 (require
   (for-syntax racket/base) ; for help menu
   drracket/tool ; necessary to build a drracket plugin
-  framework ; for preferences (too heavy a package?)
+  framework
   help/search
   net/sendurl ; for the help menu
   racket/class
@@ -12,10 +12,11 @@
   racket/list
   racket/string
   racket/unit
-  "base.rkt"
-  "exn-gobbler.rkt"
-  (prefix-in lib: "library.rkt")
-  "library-gui.rkt")
+  setup/getinfo
+  "private/base.rkt"
+  "private/exn-gobbler.rkt"
+  (prefix-in lib: "private/library.rkt")
+  "private/library-gui.rkt")
 (provide tool@)
 
 #|
@@ -31,9 +32,6 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 |#
 
 (define orig-display-handler #f) ; will be set in the unit.
-
-(define (user-script-files #:exclude? [exclude? #t])
-  (lib:all-files (lib:load library-file) #:exclude? exclude?))
 
 (define (error-message-box str e)
   (define sp (open-output-string))
@@ -64,12 +62,14 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                  '(caution ok))))
 
 ;; -> exn-gobbler?
+#;
 (define (compile-library)
   (time-info "Recompiling library"
                (parameterize ([error-display-handler orig-display-handler])
                  (compile-user-scripts (user-script-files)))))
 
 ;; -> void?
+#;
 (define (compile-library/frame)
   (define fr #false)
     (dynamic-wind
@@ -131,11 +131,18 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                   defed)))
 
         (define/private (new-script)
+          (define (name-ok? name)
+            (and (non-empty-string? name)
+                 (string->path-element name 'false-on-non-element)
+                 (not (string-ci=? name "info"))))
           (define name (get-text-from-user "Script name" "Enter the name of the new script:"
                                            this
-                                           #:validate non-empty-string?
+                                           #f
+                                           ""
+                                           '(disallow-invalid)
+                                           #:validate name-ok?
                                            #:dialog-mixin frame:focus-table-mixin))
-          (when name
+          (when (and name (name-ok? name))
             (define filename (string-append (string-foldcase (string-replace name " " "-")) ".rkt"))
             (define file-path (build-path user-script-dir filename))
             (define proc-name (string-foldcase (string-replace name " " "-")))
@@ -238,7 +245,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
               ; See HelpDesk for "Manipulating namespaces"
               (let ([f (parameterize ([current-namespace ns])
                          ; Ensure the script is compiled for the correct version of Racket
-                         (compile-user-script fpath)
+                         #;(compile-user-script fpath)
                          (dynamic-require fpath name))]
                     [kw-dict
                      (append
@@ -350,6 +357,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         ;; All menu item scripts have are at the key `#f` in property-dicts.
         ;; The key for other scripts (hooks, not menu entries) is the script's identifier (name).
         (define property-dicts (make-hasheq))
+        (define user-script-dir 'user-script-dir-not-loaded)
 
         (define/private (load-properties!)
           (set! property-dicts (make-hasheq))
@@ -357,8 +365,10 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ;; Create an empty namespace to load all the scripts (in the same namespace).
           (parameterize ([current-namespace (make-base-empty-namespace)]
                          [error-display-handler orig-display-handler])
+            (define lib (lib:load))
+            (set! user-script-dir (lib:user-script-dir lib))
             ;; For all script files in the script directory.
-            (for ([f (in-list (user-script-files))])
+            (for ([f (in-list (lib:all-enabled-scripts lib))])
               (time-info
                (string-append "Loading file " (path->string f))
                (with-handlers* ([exn:fail?
@@ -384,6 +394,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
            "Building script menu"
            (set! menu-reload-count (add1 menu-reload-count))
            (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
+
+           (unless (eq? user-script-dir 'user-script-dir-not-loaded)
+             (reset-relevant-directories-state!))
 
            (load-properties!)
 
@@ -453,6 +466,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                   ("&Reload menu"                . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (reload-scripts-menu)))
+                  #;
                   ("&Compile scripts"            . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (compile-library/frame)
@@ -469,7 +483,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (new separator-menu-item% [parent scripts-menu])
 
         ;; Show the error messages that happened during the initial compilation.
-        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
+        #;(exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
 
         (reload-scripts-menu)
         (on-startup)))
@@ -565,7 +579,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
     ; This must be done before building the menus.
     ; The compilation is done at this point so that the splash screen doesn't disappear,
     ; but the message box will be shown after the DrRacket frame is shown up.
-    (define init-compile-exn-gobbler (compile-library))
+    #;(define init-compile-exn-gobbler (compile-library))
 
     ;; Search for "Extending the Existing DrRacket Classes" to see what can be extended:
     (drracket:get/extend:extend-definitions-text text-mixin)

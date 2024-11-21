@@ -8,11 +8,11 @@
 
 (define shadow-prefix "shadow:")
 
-(define (make-header f)
+(define (make-header writable-module-path)
 @string-append{
 #lang racket/base
 (require quickscript
-         (prefix-in @shadow-prefix (file @(~s (path->string f)))))
+         (prefix-in @shadow-prefix @(~s writable-module-path)))
 
 ;;; This is a 'shadow' script.
 ;;; The script functions below call the functions of the original script,
@@ -41,12 +41,12 @@
   
 })
 
-(define (make-shadow-script f)
+(define (make-shadow-script f writable-module-path)
   (parameterize ([current-namespace (make-base-empty-namespace)])
     (define props-dict (get-property-dicts f))
     (define funs (dict-keys props-dict))
     (string-append
-     (make-header f)
+     (make-header writable-module-path)
      "\n"
      (string-join
       (for/list ([props (in-list props-dict)])
@@ -74,4 +74,4 @@
     (define qs-path (resolve-module-path 'quickscript-extra))
     (define f (build-path (path-only qs-path)
                           "scripts" "bookmarks.rkt"))
-    (displayln (make-shadow-script f))))
+    (displayln (make-shadow-script f #|FIXME|#))))
