@@ -4,6 +4,7 @@
          racket/class
          setup/dirs
          racket/file
+         string-constants
          "base.rkt"
          (prefix-in lib: "library.rkt")
          "shadow-script.rkt"
@@ -181,7 +182,7 @@
     ;;; Widgets
 
     (define fr (new frame% [parent parent-frame]
-                    [label "Script library"]
+                    [label (string-constant qs-script-library)]
                     [width 800] [height 400]
                     [min-width 400] [min-height 100]))
     (define panels (new panel:horizontal-dragable% [parent fr]))
@@ -189,7 +190,7 @@
     (define dir-panel (new vertical-panel% [parent panels]
                            [style '(auto-hscroll auto-vscroll)]))
     (define dir-lb (new list-box% [parent dir-panel]
-                        [label "Directories"]
+                        [label (string-constant qs-directories)]
                         [choices (lib:directories the-lib)]
                         [style '(single vertical-label)]
                         [callback (λ (lb ev)  (dir-lb-select))]))
@@ -198,10 +199,10 @@
                               [stretchable-height #f]
                               [alignment '(center center)]))
     (define bt-dir-add (new button% [parent bt-dir-panel]
-                            [label "&Add"]
+                            [label (string-constant qs-add)]
                             [callback (λ (bt ev)  (add-directory))]))
     (define bt-dir-remove (new button% [parent bt-dir-panel]
-                               [label "&Remove"]
+                               [label (string-constant qs-remove)]
                                [callback (λ (bt ev)  (remove-selected-dir))]))
   
     (define bt-dir-panel2 (new horizontal-panel% [parent dir-panel]
@@ -211,7 +212,7 @@
                              [style '(auto-hscroll auto-vscroll)]))
     (define files-lb
       (new list-box% [parent files-panel]
-           [label "Scripts"]
+           [label (string-constant qs-scripts)]
            [choices '()]
            [style '(extended vertical-label)]
            [callback
@@ -227,7 +228,7 @@
                                 [alignment '(center center)]))
     (define bt-files-un/check
       (new button% [parent bt-files-panel]
-           [label "Disa&ble"]
+           [label (string-constant qs-disable)]
            [callback (λ (bt ev)  (ex/include-selected-file))]))
 
     (define (update-bt-files-un/check)
@@ -235,19 +236,19 @@
         (get-dir+check+file))
       (when file
         (send bt-files-un/check set-label
-              (if checked? "Disa&ble" "Ena&ble"))
+              (if checked? (string-constant qs-disable) (string-constant qs-enable)))
         (set-msg-help-string dir file)))
   
     (define bt-files-shadow
       (new button% [parent bt-files-panel]
-           [label "S&hadow"]
+           [label (string-constant qs-shadow)]
            [callback (λ (bt ev)  (shadow-selected-file))]))
   
     (define bt-files-edit #f)
     (when drracket-parent?
       (set! bt-files-edit
             (new button% [parent bt-files-panel]
-                 [label "&Edit"]
+                 [label (string-constant edit-menu-label)]
                  [callback
                   (λ (bt ev) 
                     (define-values (dir checked? file)
@@ -266,7 +267,7 @@
                            [alignment '(center center)]))
 
     (define bt-close (new button% [parent lib-panel]
-                          [label "&Close"]
+                          [label (string-constant close-menu-item)]
                           [callback (λ (bt ev) (send fr show #f))]))
 
     (dir-lb-select user-script-dir)

@@ -12,6 +12,7 @@
   racket/list
   racket/string
   racket/unit
+  string-constants ; translations
   "base.rkt"
   "exn-gobbler.rkt"
   (prefix-in lib: "library.rkt")
@@ -40,7 +41,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
   (parameterize ([current-error-port sp])
     (orig-display-handler (exn-message e) e))
 
-  (message-box "Quickscript caught an exception"
+  (message-box (string-constant qs-caught-exception)
                (string-append str " " (get-output-string sp))
                #f '(stop ok)))
 
@@ -65,7 +66,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
 ;; -> exn-gobbler?
 (define (compile-library)
-  (time-info "Recompiling library"
+  (time-info (string-constant qs-recompiling-library)
                (parameterize ([error-display-handler orig-display-handler])
                  (compile-user-scripts (user-script-files)))))
 
@@ -74,13 +75,13 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
   (define fr #false)
     (dynamic-wind
      (λ ()
-       (set! fr (new frame% [parent #f] [label "Recompiling quickscripts…"] [width 200] [height 50]))
-       (void (new message% [parent fr] [label "Recompiling quickscripts, please wait…"]))
+       (set! fr (new frame% [parent #f] [label (string-constant qs-recompiling)] [width 200] [height 50]))
+       (void (new message% [parent fr] [label (string-constant qs-recompiling-wait)]))
        (send fr reflow-container)
        (send fr show #true))
      (λ ()
        (define gb (compile-library))
-       (exn-gobbler-message-box gb "Quickscript: Error during compilation"))
+       (exn-gobbler-message-box gb (string-constant qs-compilation-error)))
      (λ () (send fr show #false))))
 
 (define (property-dict-hook? props)
@@ -131,7 +132,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                   defed)))
 
         (define/private (new-script)
-          (define name (get-text-from-user "Script name" "Enter the name of the new script:"
+          (define name (get-text-from-user (string-constant qs-script-name) (string-constant qs-script-name-enter)
                                            this
                                            #:validate non-empty-string?
                                            #:dialog-mixin frame:focus-table-mixin))
@@ -159,7 +160,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
             (send this open-in-new-tab file)))
 
         (define/private (open-script)
-          (define file (get-file "Open a script" this user-script-dir #f #f '()
+          (define file (get-file (string-constant qs-open-script) this user-script-dir #f #f '()
                                  '(("Racket" "*.rkt"))))
           (edit-script file))
 
@@ -177,7 +178,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (define menu-reload-count 0)
 
         (define scripts-menu
-          (new menu% [parent menu-bar] [label "&Scripts"]))
+          (new menu% [parent menu-bar] [label (string-constant qs-scripts)]))
 
         ;::::::::::::::::;
         ;:: Run Script ::;
@@ -232,7 +233,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
           (define script-result
             (with-error-message-box
-                (format "Run: Error in script file ~s:\n" (path->string fpath))
+                (format (string-constant qs-error-run) (path->string fpath))
               #:error-value #f
 
               ; See HelpDesk for "Manipulating namespaces"
@@ -275,7 +276,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                     (text-insert editor script-result)]
                    [(message-box)
                     (when (string? script-result)
-                      (message-box "Output" script-result this))]
+                      (message-box (string-constant qs-output) script-result this))]
                    [(clipboard)
                     (when (string? script-result)
                       (send the-clipboard set-clipboard-string script-result 0))])]))
@@ -353,17 +354,17 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
         (define/private (load-properties!)
           (set! property-dicts (make-hasheq))
-          (define gb (make-exn-gobbler "Loading Scripts menu"))
+          (define gb (make-exn-gobbler (string-constant qs-load-script-menu)))
           ;; Create an empty namespace to load all the scripts (in the same namespace).
           (parameterize ([current-namespace (make-base-empty-namespace)]
                          [error-display-handler orig-display-handler])
             ;; For all script files in the script directory.
             (for ([f (in-list (user-script-files))])
               (time-info
-               (string-append "Loading file " (path->string f))
+               (string-append (string-constant qs-loading-file) (path->string f))
                (with-handlers* ([exn:fail?
                                  (λ (e)
-                                   (gobble gb e (format "Script file ~s:" (path->string f)))
+                                   (gobble gb e (format (string-constant qs-script-file)(path->string f)))
                                    '())])
                  (define props-list (get-property-dicts f))
                  (for ([props (in-list props-list)])
@@ -377,13 +378,13 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           ; Don't display an error on menu build, as an error is already shown
           ; during compilation.
           (log-quickscript-info (exn-gobbler->string gb))
-          #;(exn-gobbler-message-box gb "Quickscript: Errors while loading script properties"))
+          #;(exn-gobbler-message-box gb (string-constant qs-error-load)))
 
         (define/private (reload-scripts-menu)
           (time-info
-           "Building script menu"
+           (string-constant qs-build-menu)
            (set! menu-reload-count (add1 menu-reload-count))
-           (log-quickscript-info "Script menu rebuild #~a..." menu-reload-count)
+           (log-quickscript-info (string-constant qs-menu-rebuild) menu-reload-count)
 
            (load-properties!)
 
@@ -410,9 +411,9 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
 
              ;; remove all scripts items, after the default ones:
              (time-info
-              "Deleting menu items"
+              (string-constant qs-delete-menu)
               (for ([item (list-tail (send scripts-menu get-items) 2)])
-                (log-quickscript-info "Deleting menu item ~a... " (send item get-label))
+                (log-quickscript-info (string-constant qs-delete-menu-item) (send item get-label))
                 (send item delete)))
              ;; Add script items.
              (for ([props (in-list property-dicts)])
@@ -440,27 +441,27 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                       [help-string      help-string]
                       [callback         (λ (it ev) (run-script props))]))))))
 
-        (define manage-menu (new menu% [parent scripts-menu] [label "&Manage"]))
+        (define manage-menu (new menu% [parent scripts-menu] [label (string-constant qs-manage)]))
         (for ([(lbl cbk)
                (in-dict
-                `(("&New script…"                . ,(λ () (new-script)))
-                  ("&Open script…"               . ,(λ () (open-script)))
-                  ("&Disable scripts…"           . ,(λ () (make-library-gui #:parent-frame this
+                `((,(string-constant qs-new-script)                . ,(λ () (new-script)))
+                  (,(string-constant qs-open-script)               . ,(λ () (open-script)))
+                  (,(string-constant qs-disable-scripts)           . ,(λ () (make-library-gui #:parent-frame this
                                                                             #:drracket-parent? #t)))
                   (separator                     . #f)
-                  ("&Library…"                   . ,(λ () (make-library-gui #:parent-frame this
+                  (,(string-constant qs-library)                   . ,(λ () (make-library-gui #:parent-frame this
                                                                             #:drracket-parent? #t)))
-                  ("&Reload menu"                . ,(λ ()
+                  (,(string-constant qs-reload-menu)               . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (reload-scripts-menu)))
-                  ("&Compile scripts"            . ,(λ ()
+                  (,(string-constant qs-compile-scripts)           . ,(λ ()
                                                       (unload-persistent-scripts)
                                                       (compile-library/frame)
                                                       (reload-scripts-menu)))
-                  ("&Stop persistent scripts"    . ,(λ () (unload-persistent-scripts)))
+                  (,(string-constant qs-stop-scripts)              . ,(λ () (unload-persistent-scripts)))
                   (separator                     . #f)
-                  ("&Help"                       . ,(λ () (open-help)))
-                  ("Report an &issue"            . ,(λ () (bug-report)))
+                  (,(string-constant help-menu-label)              . ,(λ () (open-help)))
+                  (,(string-constant qs-report-issue)              . ,(λ () (bug-report)))
                   ))])
           (if (eq? lbl 'separator)
               (new separator-menu-item% [parent manage-menu])
@@ -469,7 +470,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (new separator-menu-item% [parent scripts-menu])
 
         ;; Show the error messages that happened during the initial compilation.
-        (exn-gobbler-message-box init-compile-exn-gobbler "Quickscript: Error during compilation")
+        (exn-gobbler-message-box init-compile-exn-gobbler (string-constant qs-compilation-error))
 
         (reload-scripts-menu)
         (on-startup)))
