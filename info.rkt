@@ -6,7 +6,8 @@
     "drracket"
     "gui-lib"
     "net-lib"
-    "scribble-lib"))
+    "scribble-lib"
+    ["string-constants-lib" #:version "1.49"]))
 
 (define build-deps
   '("at-exp-lib"

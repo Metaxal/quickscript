@@ -35,8 +35,13 @@ This may require `sudo` if it was used when installing racket.
 
 Now the quickscript collection refers to the cloned repository.
 
+## 4. Translating Quickscript GUI
 
-## 4. History
+As Quickscript is used within DrRacket it is using its system for translation.
+Strings translation are part of the [Racket String Constants)[https://github.com/racket/string-constants] repo.
+See the [docs](https://docs.racket-lang.org/string-constants/index.html).
+
+## 5. History
 
 Quickscript is the successor to [Script Plugin](https://github.com/Metaxal/script-plugin), with some differences:
 - Each Quickscript script is a **single file** (instead of 2), which makes it easier to share and modify.

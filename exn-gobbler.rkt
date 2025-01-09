@@ -2,7 +2,8 @@
 (require racket/string
          racket/list
          racket/match
-         racket/contract)
+         racket/contract
+         string-constants)
 
 (provide
  (struct-out exn-gobbler)
@@ -53,10 +54,7 @@
    (if (exn-gobbler-title gobbler)
      (string-append (exn-gobbler-title gobbler) "\n")
      "")
-   (format "~a error(s) have been caught.\n" (length summaries))
-   "\nSummary:\n"
-   (string-join summaries "\n")
-   "\n\nDetails:\n"
+   (format (string-constant qs-error-details) (length summaries) (string-join summaries "\n"))
    "------------------------\n"
    (string-join (map (λ (su st) (string-append su "\n\n" st)) summaries strs)
                 "\n------------------------\n")))

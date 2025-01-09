@@ -1,7 +1,8 @@
 #lang racket/base
 
 (require racket/class
-         racket/gui/base)
+         racket/gui/base
+         string-constants)
 
 (provide (all-defined-out))
 
@@ -14,8 +15,8 @@
 (define (smart-open-file drfr f)
   (cond
     [(not (file-exists? f))
-     (message-box "Error"
-                  (format "File not found: ~a" f)
+     (message-box (string-constant error)
+                  (format (string-constant qs-file-not-found) f)
                   drfr
                   '(ok stop))
      #f]
