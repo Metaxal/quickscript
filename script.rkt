@@ -139,7 +139,7 @@
      #:fail-when (and (not (memq (syntax-e #'proc)
                                  known-hook-ids))
                       #'proc)
-     (string-append (string-constant qs-invalid-hook) known-hook-ids-str)
+     (string-append "Invalid hook name.\n Valid names:\n" known-hook-ids-str)
      (add-submod-content!
       #`(begin
           (provide proc)
