@@ -7,7 +7,7 @@
     "gui-lib"
     "net-lib"
     "scribble-lib"
-    ["string-constants-lib" #:version "1.49"]))
+    ["string-constants-lib" #:version "1.50"]))
 
 (define build-deps
   '("at-exp-lib"

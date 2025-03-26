@@ -54,8 +54,14 @@
    (if (exn-gobbler-title gobbler)
      (string-append (exn-gobbler-title gobbler) "\n")
      "")
-   (format (string-constant qs-error-details) (length summaries) (string-join summaries "\n"))
-   "------------------------\n"
+   (format (string-constant qs-error-detail-overview) (length summaries))
+   "\n"
+   (string-constant qs-error-detail-summary)
+   "\n"
+   (string-join summaries "\n")
+   "\n\n"
+   (string-constant qs-error-detail-details)
+   "\n------------------------\n"
    (string-join (map (λ (su st) (string-append su "\n\n" st)) summaries strs)
                 "\n------------------------\n")))
 
