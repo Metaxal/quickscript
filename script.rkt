@@ -103,12 +103,7 @@
       on-tab-close
       on-startup
       after-create-new-drracket-frame
-      on-close))
-  (define known-hook-ids-str
-    (apply string-append
-           (for*/list ([id known-hook-ids]
-                       [s (in-list (list "  " (symbol->string id) "\n"))])
-             s))))
+      on-close)))
 
 (define-syntax (define-hook stx)
   (syntax-parse stx
@@ -136,21 +131,25 @@
                          #:defaults ([os-types-val #'(unix macosx windows)])))
         ...
         rhs:expr)
-     #:fail-when (and (not (memq (syntax-e #'proc)
-                                 known-hook-ids))
-                      #'proc)
-     (string-append "Invalid hook name.\n Valid names:\n" known-hook-ids-str)
-     (add-submod-content!
-      #`(begin
-          (provide proc)
-          (define proc (list
-                        (cons 'label            #f)
-                        (cons 'help-string      'help-string-val)
-                        (cons 'persistent?      '#,(attribute persist? #;persistent.persistent?))
-                        (cons 'os-types         'os-types-val)))))
-     (syntax/loc stx
-       (begin (provide proc)
-              (define proc rhs)))]))
+     (cond
+       [(not (memq (syntax-e #'proc)
+                   known-hook-ids))
+        #`(string-append (string-constant qs-invalid-hook)
+                         #,@(for*/list ([id known-hook-ids]
+                                        [s (in-list (list "  " (symbol->string id) "\n"))])
+                              s))]
+       [else
+        (add-submod-content!
+         #`(begin
+             (provide proc)
+             (define proc (list
+                           (cons 'label            #f)
+                           (cons 'help-string      'help-string-val)
+                           (cons 'persistent?      '#,(attribute persist? #;persistent.persistent?))
+                           (cons 'os-types         'os-types-val)))))
+        (syntax/loc stx
+          (begin (provide proc)
+                 (define proc rhs)))])]))
 
 (define-syntax (generate-submodule stx)
   #`(module script-info racket/base #,@submodule-content)
