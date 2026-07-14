@@ -103,7 +103,8 @@
       on-tab-close
       on-startup
       after-create-new-drracket-frame
-      on-close))
+      on-close
+      on-focus-gain))
   (define known-hook-ids-str
     (apply string-append
            (for*/list ([id known-hook-ids]

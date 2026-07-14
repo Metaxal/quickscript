@@ -116,6 +116,12 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
                  ;register-toolbar-button
                  create-new-tab)
 
+        (define/override (on-activate active?)
+          (super on-activate active?)
+          (when active?
+            (queue-callback
+             (λ () (find-and-run-hook-scripts 'on-focus-gain)))))
+
         (define/private (get-the-text-editor)
           ; for a frame:text% :
           ;(define text (send frame get-editor))
@@ -303,6 +309,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           (inner (void) on-tab-change tab-from tab-to)
           (queue-callback
            (λ () (find-and-run-hook-scripts 'on-tab-change
+                                            #:tab tab-to
                                             #:more-kwargs `((#:tab-from . ,tab-from)
                                                             (#:tab-to   . ,tab-to))))))
 
