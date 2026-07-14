@@ -120,7 +120,7 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
           (super on-activate active?)
           (when active?
             (queue-callback
-             (λ () (find-and-run-hook-scripts 'on-focus-gain)))))
+             (λ () (find-and-run-hook-scripts 'on-focus)))))
 
         (define/private (get-the-text-editor)
           ; for a frame:text% :
@@ -308,10 +308,13 @@ The maximize button of the frame also disappears, as if the X11 maximize propert
         (define/augment (on-tab-change tab-from tab-to)
           (inner (void) on-tab-change tab-from tab-to)
           (queue-callback
-           (λ () (find-and-run-hook-scripts 'on-tab-change
+           (λ ()
+             (find-and-run-hook-scripts 'on-tab-change
                                             #:tab tab-to
                                             #:more-kwargs `((#:tab-from . ,tab-from)
-                                                            (#:tab-to   . ,tab-to))))))
+                                                            (#:tab-to   . ,tab-to)))
+             (find-and-run-hook-scripts 'on-focus
+                                            #:tab tab-to))))
 
         (define/augment (on-close)
           (inner (void) on-close)

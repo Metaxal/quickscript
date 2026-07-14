@@ -404,7 +404,7 @@ List of supported hooks, with the additional keywords within parentheses:
  @item{@racket[after-create-new-drracket-frame] @racket[(#:show)]: called after a new DrRacket frame
    is created.}
  @item{@racket[on-close] @racket[()] : called when a DrRacket frame is closed.}
- @item{@racket[on-focus-gain] @racket[()] : called when a DrRacket frame gains focus.}
+ @item{@racket[on-focus] @racket[()] : called when the active tab gains focus (either because the DrRacket frame gains focus, or because the user switched tabs).}
  ]
 }
 
